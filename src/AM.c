@@ -221,18 +221,19 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     // Initialize root block with id and key_number (1)
     rblock_data = BF_Block_GetData(rblock);
     // It is an "index block"
-    char temp_id[4] = ".ib";
-    memcpy(rblock_data, temp_id, 4);
+    char rid[4] = ".ib";
+    memcpy(rblock_data, rid, 4);
     rblock_data += 4;
     // One key will be inserted
-    int temp_num = 1;
-    memcpy(rblock_data, key_num, sizeof(int));
+    int temp_i = 1;
+    memcpy(rblock_data, &temp_i, sizeof(int));
     rblock_data += sizeof(int);
 
     // Get block number of the root and save it in OpenIndexes
     int rblock_num;
     CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &rblock_num));
-    OpenIndexes[fileDesc].rootBlockNum = rblock_num - 1;
+    rblock_num--;
+    OpenIndexes[fileDesc].rootBlockNum = rblock_num;
 
     // Allocate block for the first data block
     BF_Block *dblock;
@@ -241,15 +242,35 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     CHK_BF_ERR(BF_AllocateBlock(fd, dblock));
     // Initialize data block with id, record number (1), next data block (-1),
     // and finally the record (value1, value2)
-    rblock_data = BF_Block_GetData(rblock);
+    dblock_data = BF_Block_GetData(dblock);
     // It is a "data block"
     char did[4] = ".db";
     memcpy(dblock_data, did, 4);
     dblock_data += 4;
     // One record will be inserted
-    int rec_num = 1;
-    memcpy(dblock_data, rec_num, sizeof(int));
+    temp_i = 1;
+    memcpy(dblock_data, &temp_i, sizeof(int));
+    dblock_data += sizeof(int);
+    // There is no next data block (-1)
+    temp_i = -1;
+    memcpy(dblock_data, &temp_i, sizeof(int));
+    dblock_data += sizeof(int);
+    // Copy input values
+    memcpy(dblock_data, &value1, OpenIndexes[fileDesc].attrLength1);
+    dblock_data += OpenIndexes[fileDesc].attrLength1;
+    memcpy(dblock_data, &value2, OpenIndexes[fileDesc].attrLength2);
+
+    // Get block number of the data block,
+    // save it in OpenIndexes and finalize initialization of the root block
+    int dblock_num;
+    CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &dblock_num));
+    dblock_num--;
+    OpenIndexes[fileDesc].dataBlockNum = dblock_num;
+    // Block number before the first key does not exist yet (-1)
+    temp_i = -1
+    memcpy(rblock_data, &temp_i, sizeof(int));
     rblock_data += sizeof(int);
+    META TO KEY KAI DBLOCK NUMBER
 
 
   }
