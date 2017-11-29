@@ -267,10 +267,14 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     dblock_num--;
     OpenIndexes[fileDesc].dataBlockNum = dblock_num;
     // Block number before the first key does not exist yet (-1)
-    temp_i = -1
+    temp_i = -1;
     memcpy(rblock_data, &temp_i, sizeof(int));
     rblock_data += sizeof(int);
     META TO KEY KAI DBLOCK NUMBER
+    memcpy(rblock_data, &value1, OpenIndexes[fileDesc].attrLength1);
+    rblock_data += OpenIndexes[fileDesc].attrLength1;
+    memcpy(rblock_data, &dblock_num, sizeof(int));
+    
 
 
   }
