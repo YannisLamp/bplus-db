@@ -18,12 +18,19 @@
     }                                \
   }
 
+
+
 int AM_errno = AME_OK;
 
 void AM_Init() {
   // Initialize BF part
 
   // Initialize global
+  for(int i = 0; i < MAXOPENFILES; i++)
+    filemeta_init(OpenIndexes[i]);
+
+
+
 
 
 	return;
@@ -282,6 +289,14 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 
 
 int AM_OpenIndexScan(int fileDesc, int op, void *value) {
+
+  // Check if file is open in OpenIndexes[fileDesc]
+  int fd = OpenIndexes[fileDesc].fileDesc;
+  if (fd == -1) {
+    AM_errno = AME_INDEX_FILE_NOT_OPEN;
+    return AME_INDEX_FILE_NOT_OPEN;
+  }
+
   return AME_OK;
 }
 
