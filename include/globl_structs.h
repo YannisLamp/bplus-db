@@ -12,6 +12,15 @@ typedef struct FileMeta {
     int dataBlockNum;
 } FileMeta;
 
+typedef struct SearchData {
+    int fileDesc;
+    int op;
+    int key_in_block;
+    int key_pos;
+    int curr_block;
+    int curr_pos;
+} SearchData;
+
 
 
 

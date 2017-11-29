@@ -4,7 +4,9 @@
 
 /* Global Structs */
 #define MAXOPENFILES 20
+#define MAXSCANS 20
 extern FileMeta[MAXOPENFILES] OpenIndexes;
+extern SearchData[MAXSCANS] OpenSearches;
 /* Error codes */
 
 extern int AM_errno;
