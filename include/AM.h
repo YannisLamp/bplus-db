@@ -1,12 +1,14 @@
 #ifndef AM_H_
 #define AM_H_
 
-
 /* Global Structs */
+#include "globl_structs.h"
+
 #define MAXOPENFILES 20
 #define MAXSCANS 20
 extern FileMeta[MAXOPENFILES] OpenIndexes;
 extern SearchData[MAXSCANS] OpenSearches;
+
 /* Error codes */
 
 extern int AM_errno;
@@ -18,6 +20,7 @@ extern int AM_errno;
 #define AME_NO_SPACE_FOR_INDEX -4
 #define AME_NOT_INDEX_FILE -5
 #define AME_CANNOT_DESTROY_INDEX_OPEN -6
+#define AME_INDEX_FILE_NOT_OPEN -7
 
 #define EQUAL 1
 #define NOT_EQUAL 2

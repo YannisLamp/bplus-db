@@ -200,6 +200,34 @@ int AM_CloseIndex (int fileDesc) {
 
 
 int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
+  // Check if file is open in OpenIndexes[fileDesc]
+  int fd = OpenIndexes[fileDesc].fileDesc;
+  if (fd == -1) {
+    AM_errno = AME_INDEX_FILE_NOT_OPEN;
+    return AME_INDEX_FILE_NOT_OPEN;
+  }
+
+  BF_Block *block;
+  BF_Block_Init(&block);
+  char* block_data = NULL;
+
+  // Then check if a B+ tree root exists
+  // If not, initialize B+ index tree with the first record
+  // (create tree root and data block)
+  if (OpenIndexes[fileDesc].rootBlockNum = -1) {
+    // Block allocation for root
+    CHK_BF_ERR(BF_AllocateBlock(fileDesc, block));
+    // Initialize root block with id
+  }
+
+  // Save file decriptor and filename
+  OpenIndexes[save_index].fileDesc = fd;
+  //AUTOOOOOO
+  malloc
+  OpenIndexes[save_index].fileName =
+
+
+
   return AME_OK;
 }
 
