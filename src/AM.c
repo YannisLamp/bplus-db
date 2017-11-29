@@ -86,22 +86,24 @@ int AM_CreateIndex(char *fileName,
   char* block_data = BF_Block_GetData(block);
 	// Index file id (.if) (space for \0 at the end for strcmp)
   char id[4] = ".if";
-  memcpy(block_data, id, strlen(id));
-	block_data += strlen(id) + 1;
+  // TSEKAREEEEE AUTOOOOO +4 gt IPARXEI KAI TO \0 STO TELOS
+  memcpy(block_data, id, 4);
+	block_data += 4;
 	// Then save the types and lengths of the attributes
-	memcpy(block_data, attrType1, 1);
+	memcpy(block_data, &attrType1, 1);
 	block_data++;
-	memcpy(block_data, attrLength1, sizeof(int));
+	memcpy(block_data, &attrLength1, sizeof(int));
 	block_data += sizeof(int);
-	memcpy(block_data, attrType2, 1);
+	memcpy(block_data, &attrType2, 1);
 	block_data++;
-	memcpy(block_data, attrLength2, sizeof(int));
+	memcpy(block_data, &attrLength2, sizeof(int));
 	block_data += sizeof(int);
 	// Finally place -1 values where the tree root and first data block numbers
 	// will be stored
-	memcpy(block_data, -1, sizeof(int));
+  int neg1 = -1;
+	memcpy(block_data, &neg1, sizeof(int));
 	block_data += sizeof(int);
-	memcpy(block_data, -1, sizeof(int));
+	memcpy(block_data, &neg1, sizeof(int));
 
 	// Dirty and unpin
   BF_Block_SetDirty(block);
@@ -170,17 +172,17 @@ int AM_OpenIndex (char *fileName) {
   malloc
   OpenIndexes[save_index].fileName =
   // Save file metadata in the available FileMeta struct
-  memcpy(OpenIndexes[save_index].attrType1, block_data, 1);
+  memcpy(&(OpenIndexes[save_index].attrType1), block_data, 1);
   block_data++;
-  memcpy(OpenIndexes[save_index].attrLength1, block_data, sizeof(int));
+  memcpy(&(OpenIndexes[save_index].attrLength1), block_data, sizeof(int));
   block_data += sizeof(int);
-  memcpy(OpenIndexes[save_index].attrType2, block_data, 1);
+  memcpy(&(OpenIndexes[save_index].attrType2), block_data, 1);
   block_data++;
-  memcpy(OpenIndexes[save_index].attrLength2, block_data, sizeof(int));
+  memcpy(&(OpenIndexes[save_index].attrLength2), block_data, sizeof(int));
   block_data += sizeof(int);
-  memcpy(OpenIndexes[save_index].rootBlockNum, block_data, sizeof(int));
+  memcpy(&(OpenIndexes[save_index].rootBlockNum), block_data, sizeof(int));
   block_data += sizeof(int);
-  memcpy(OpenIndexes[save_index].dataBlockNum, block_data, sizeof(int));
+  memcpy(&(OpenIndexes[save_index].dataBlockNum), block_data, sizeof(int));
 
   // Unpin and destroy block
   CHK_BF_ERR(BF_UnpinBlock(block));
@@ -207,24 +209,50 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     return AME_INDEX_FILE_NOT_OPEN;
   }
 
-  BF_Block *block;
-  BF_Block_Init(&block);
-  char* block_data = NULL;
-
   // Then check if a B+ tree root exists
   // If not, initialize B+ index tree with the first record
   // (create tree root and data block)
   if (OpenIndexes[fileDesc].rootBlockNum = -1) {
-    // Block allocation for root
-    CHK_BF_ERR(BF_AllocateBlock(fileDesc, block));
-    // Initialize root block with id
-  }
+    // Allocate block for root
+    BF_Block *rblock;
+    BF_Block_Init(&rblock);
+    char* rblock_data = NULL;
+    CHK_BF_ERR(BF_AllocateBlock(fd, rblock));
+    // Initialize root block with id and key_number (1)
+    rblock_data = BF_Block_GetData(rblock);
+    // It is an "index block"
+    char temp_id[4] = ".ib";
+    memcpy(rblock_data, temp_id, 4);
+    rblock_data += 4;
+    // One key will be inserted
+    int temp_num = 1;
+    memcpy(rblock_data, key_num, sizeof(int));
+    rblock_data += sizeof(int);
 
-  // Save file decriptor and filename
-  OpenIndexes[save_index].fileDesc = fd;
-  //AUTOOOOOO
-  malloc
-  OpenIndexes[save_index].fileName =
+    // Get block number of the root and save it in OpenIndexes
+    int rblock_num;
+    CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &rblock_num));
+    OpenIndexes[fileDesc].rootBlockNum = rblock_num - 1;
+
+    // Allocate block for the first data block
+    BF_Block *dblock;
+    BF_Block_Init(&dblock);
+    char* dblock_data = NULL;
+    CHK_BF_ERR(BF_AllocateBlock(fd, dblock));
+    // Initialize data block with id, record number (1), next data block (-1),
+    // and finally the record (value1, value2)
+    rblock_data = BF_Block_GetData(rblock);
+    // It is a "data block"
+    char did[4] = ".db";
+    memcpy(dblock_data, did, 4);
+    dblock_data += 4;
+    // One record will be inserted
+    int rec_num = 1;
+    memcpy(dblock_data, rec_num, sizeof(int));
+    rblock_data += sizeof(int);
+
+
+  }
 
 
 
