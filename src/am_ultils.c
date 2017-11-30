@@ -28,4 +28,13 @@ int v_cmp(char v_type, void* value1, void* value2) {
     return -2;
 }
 
-RecTravOut rec_trav_insert();
+RecTravOut rec_trav_insert(int fileDesc, int block_num, ) {
+  // Initialize block
+  BF_Block *block;
+  BF_Block_Init(&block);
+  // Get file descriptor
+  int fd = OpenIndexes[fileDesc].fd;
+  CHK_BF_ERR(BF_GetBlock(fd, block_num, block));
+  char* block_data = BF_Block_GetData(tree_block);
+
+}
