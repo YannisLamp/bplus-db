@@ -135,7 +135,7 @@ int AM_DestroyIndex(char *fileName) {
   // If not, delete file
   // MPOREI NA THELEI ./ (GIA DIR)
   remove(filename);
-  return AME_OK;
+  return AME_OK;starting_pos
 }
 
 
@@ -299,7 +299,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 }
 
 
-int AM_OpenIndexScan(int fileDesc, int op, void *value) {
+int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe location in OpenIndexes
 
   // Check if file is open in OpenIndexes[fileDesc]
   int fd = OpenIndexes[fileDesc].fd;
@@ -317,26 +317,22 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) {
   BF_Block_Init(&block);
 
   // Get block number
-  int block_num;
-  CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_num));
+  //int block_num;
+  //CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_num));
   //might not needed
 
-  //find the file in OpenIndexes
-  for(int i=0;i<MAXOPENFILES;i++){
-
-    if(OpenIndexes[i].fileDesc==fileDesc)//found in location i of the array
-      break;
-  }
 
   //get root of the file tree
-  int rootNum=OpenIndexes[i].rootBlockNum;
+  int rootNum=OpenIndexes[fileDesc].rootBlockNum;
   CHK_BF_ERR(BF_GetBlock(fileDesc,rootNum,block));
+  BF_UnpinBlock
+  BF_GetBlock
 
   return AME_OK;
 }
 
 
-void *AM_FindNextEntry(int scanDesc) {
+void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
 
 }
 

@@ -15,7 +15,7 @@ typedef struct FileMeta {
 FileMeta filemeta_init(FileMeta);
 
 typedef struct SearchData {
-    int fileDesc;
+    int fileDesc;//fileDesc isthe location in OpenIndexes
     int op;
     int starting_block;
     int starting_pos;
@@ -23,7 +23,7 @@ typedef struct SearchData {
     int curr_pos;
 } SearchData;
 
-SearchData searchdata_init(SearchData )
+SearchData searchdata_init(SearchData);
 
 
 
