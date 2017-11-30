@@ -3,11 +3,20 @@
 
 // Compares variables depending on their type (input v_type)
 // Output similar to strcmp (only with -2 output for input errors)
+//THELEI TESTING OPWSDIPOTE
 int v_cmp(char v_type, void* value1, void* value2) {
-  if (v_type == INTEGER || v_type == FLOAT) {
-    if (*value1 < *value2)
+  if (v_type == INTEGER) {
+    if ((*(int*) value1) < (*(int*) value2))
       return -1;
-    else if (*value1 > *value2)
+    else if ((*(int*) value1) < (*(int*) value2))
+      return 1;
+    else
+      return 0;
+  }
+  else if (v_type == FLOAT) {
+    if ((*(float *)value1) < (*(float *)value2))
+      return -1;
+    else if ((*(float *)value1) < (*(float *)value2))
       return 1;
     else
       return 0;
