@@ -25,10 +25,10 @@ int AM_errno = AME_OK;
 void AM_Init() {
   // Initialize BF part
   CHK_BF_ERR(BF_Init(LRU));
-
   // Initialize global
   for(int i = 0; i < MAXOPENFILES; i++)
     OpenIndexes[i] = filemeta_init(OpenIndexes[i]);
+
   for(int i = 0; i < MAXSCANS; i++)
     OpenSearches[i] = searchdata_init(OpenSearches[i]);
 
@@ -126,7 +126,6 @@ int AM_DestroyIndex(char *fileName) {
 	// Check if index file is open
   int i = 0;
   while(i < MAXOPENFILES) {
-    // It should not be destroyed if open
     if (strcmp(OpenIndexes[i].fileName, fileName) == 0) {
       AM_errno = AME_CANNOT_DESTROY_INDEX_OPEN;
       return AME_CANNOT_DESTROY_INDEX_OPEN;
@@ -303,22 +302,13 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     // First get tree root data
     CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, tree_block));
     char* tree_data = BF_Block_GetData(tree_block);
-
     // Then, only if input key (value1) is less than the first key of the
     // root block, and the first pointer of the root does not point to a
     // block (-1), make a new data block, place the record in it and point to it
-
-    // Get first block number
-    tree_data += 4 + sizeof(int);
-    int fblock_num = 0;
-    memcpy(fblock_num, tree_data, sizeof(int));
-    // Get first key
-    tree_data += sizeof(int);
-    void* fkey = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
-    memcpy(fkey, tree_data, OpenIndexes[fileDesc].attrLength1);
-
-    if (fblock_num == -1 &&
-        v_cmp(OpenIndexes[fileDesc].attrType1, value1, fkey) == -1) {
+    void* fkey = NULL;
+    // KAPPA KIPPO
+    //memcpy(tree_data, &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
+    if () {
       // Allocate data block
       BF_Block *block;
       BF_Block_Init(&block);
@@ -359,13 +349,11 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 
     }
 
-    free(fkey);
     // Set dirty, unpin and destroy block
     BF_Block_SetDirty(tree_block);
     CHK_BF_ERR(BF_UnpinBlock(tree_block));
     BF_Block_Destroy(&tree_block);
   }
-
   return AME_OK;
 }
 
@@ -384,14 +372,34 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_ROOT_NOT_EXIST;
   }
 
-  OpenSearches[i]
+  for(int scanDesc = 0; scanDesc < MAXSCANS; i++) {//search for location in OpenSearches
+    OpenSearches[scanDesc].fileDesc==-1;
+    break;
+  }
+
+  //Check if there is location in OpenSearches
+  if(scanDesc==MAXSCANS){
+    AM_errno = AME_NO_SPACE_FOR_SEARCH;
+    return AME_NO_SPACE_FOR_SEARCH;
+  }
 
   BF_Block *block;
   BF_Block_Init(&block);
-
-
+  int fd=OpenIndexes[fileDesc].fd;
+  char* data;
+  char* id;
   switch (op) {
     case EQUAL:
+      While (1){
+        CHK_BF_ERR(BF_GetBlock(fd,OpenIndexes[fileDesc].rootBlockNum,block));
+        data=BF_Block_GetData(block);
+        id=(char*)malloc(4);
+        memcpy(id,data,4);
+        if(v_cmp('c',id,".if"){
+
+        }
+        CHK_BF_ERR(BF_UnpinBlock(block));
+      }
       break;
     case NOT_EQUAL:
       break;
@@ -408,14 +416,14 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_INVALID_OP;
   }
 
-  //get root of the file tree
-  int rootNum=OpenIndexes[fileDesc].rootBlockNum;
-  int fd=OpenIndexes[fileDesc].fd;
-  CHK_BF_ERR(BF_GetBlock(fd,rootNum,block));
+
+
+
+  CHK_BF_ERR(BF_GetBlock(fd,OpenIndexes[fileDesc].dataBlockNum,block));
   BF_UnpinBlock
   BF_GetBlock
 
-  return AME_OK;
+  return scanDesc;
 }
 
 
@@ -425,6 +433,13 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
 
 
 int AM_CloseIndexScan(int scanDesc) {
+
+  if(OpenSearches[scanDesc].fileDesc==-1) { //check if in OpenIndexes
+    AM_errno = AME_CANNOT_DESTROY_SEARCH_OPEN;
+    return AME_CANNOT_DESTROY_SEARCH_OPEN;
+  }
+  else //if it is initialize again the data
+      OpenSearches[scanDesc] = searchdata_init(OpenSearches[scanDesc]);
   return AME_OK;
 }
 
