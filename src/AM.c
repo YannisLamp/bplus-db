@@ -136,7 +136,6 @@ int AM_DestroyIndex(char *fileName) {
   // MPOREI NA THELEI ./ (GIA DIR)
   remove(filename);
   return AME_OK;
-  //starting_pos
 }
 
 
@@ -175,9 +174,10 @@ int AM_OpenIndex (char *fileName) {
 
   // Save file decriptor and filename
   OpenIndexes[save_index].fd = fd;
-  //AUTOOOOOO
-  malloc
-  OpenIndexes[save_index].fileName =
+  // MPOREI LATHOS
+  char* fname = malloc(sizeof(fileName));
+  strcpy(fname, fileName);
+  OpenIndexes[save_index].fileName = fname;
   // Save file metadata in the available FileMeta struct
   memcpy(&(OpenIndexes[save_index].attrType1), block_data, 1);
   block_data++;
@@ -200,10 +200,17 @@ int AM_OpenIndex (char *fileName) {
 
 
 int AM_CloseIndex (int fileDesc) {
-  // AN KANW MALLOC GIA TO FILENAME EDW FREE
-  // AN APOFASISW AN THA ALLW TIS TIMES TWN ALLWN
-  // ELEGXOS KAI STO GLOBALSEARCH AN IPARXEI PRIN KLEISEI
-
+  // First check if there are any open searches on this file index
+  for (int i = 0; i < MAXSCANS; i++) {
+    if (OpenSearches[i].fileDesc == fileDesc) {
+      AM_errno = AME_CANNOT_CLOSE_SEARCH_OPEN;
+      return AME_CANNOT_CLOSE_SEARCH_OPEN;
+    }
+  }
+  // Free allocated space used to store the filename
+  free(OpenIndexes[fileDesc].fileName);
+  // Reset the index value
+  OpenIndexes[fileDesc] = filemeta_init(OpenIndexes[fileDesc]);
 	return AME_OK;
 }
 

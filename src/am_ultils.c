@@ -22,7 +22,7 @@ int v_cmp(char v_type, void* value1, void* value2) {
       return 0;
   }
   else if (v_type == STRING)
-    return strcmp(value1, value2);
+    return strcmp((char *)value1, (char *)value2);
   // In case of wrong v_type input
   else
     return -2;
