@@ -377,18 +377,34 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_ROOT_NOT_EXIST;
   }
 
+  OpenSearches[i]
+
   BF_Block *block;
   BF_Block_Init(&block);
 
-  // Get block number
-  //int block_num;
-  //CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_num));
-  //might not needed
 
+  switch (op) {
+    case EQUAL:
+      break;
+    case NOT_EQUAL:
+      break;
+    case LESS_THAN:
+      break;
+    case GREATER_THAN:
+      break;
+    case LESS_THAN_OR_EQUAL:
+      break;
+    case GREATER_THAN_OR_EQUAL:
+      break;
+    default:
+    AM_errno = AME_INVALID_OP;
+    return AME_INVALID_OP;
+  }
 
   //get root of the file tree
   int rootNum=OpenIndexes[fileDesc].rootBlockNum;
-  CHK_BF_ERR(BF_GetBlock(fileDesc,rootNum,block));
+  int fd=OpenIndexes[fileDesc].fd;
+  CHK_BF_ERR(BF_GetBlock(fd,rootNum,block));
   BF_UnpinBlock
   BF_GetBlock
 
