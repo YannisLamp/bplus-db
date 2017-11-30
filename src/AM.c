@@ -281,8 +281,16 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     rblock_data += OpenIndexes[fileDesc].attrLength1;
     memcpy(rblock_data, &dblock_num, sizeof(int));
 
-
-
+    // Unpin and destroy blocks
+    CHK_BF_ERR(BF_UnpinBlock(rblock));
+    BF_Block_Destroy(&rblock);
+    CHK_BF_ERR(BF_UnpinBlock(dblock));
+    BF_Block_Destroy(&dblock);
+  }
+  // Else if tree exists, insert record (value1, value2), according to
+  // B+ tree algorithm
+  else {
+    
   }
 
 
