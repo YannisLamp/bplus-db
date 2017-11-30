@@ -1,6 +1,8 @@
 #ifndef GLOBL_STRUCTS
 #define GLOBL_STRUCTS
 
+
+
 typedef struct FileMeta {
     int fileDesc;
     char* fileName;
@@ -11,6 +13,8 @@ typedef struct FileMeta {
     int rootBlockNum;
     int dataBlockNum;
 } FileMeta;
+
+FileMeta filemeta_init(FileMeta);
 
 typedef struct SearchData {
     int fileDesc;

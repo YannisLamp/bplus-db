@@ -276,7 +276,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     temp_i = -1;
     memcpy(rblock_data, &temp_i, sizeof(int));
     rblock_data += sizeof(int);
-    META TO KEY KAI DBLOCK NUMBER
+    // Finally save key, then data block number in the root
     memcpy(rblock_data, &value1, OpenIndexes[fileDesc].attrLength1);
     rblock_data += OpenIndexes[fileDesc].attrLength1;
     memcpy(rblock_data, &dblock_num, sizeof(int));

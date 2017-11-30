@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "globl_structs.h"
 
 FileMeta filemeta_init(FileMeta fm) {
