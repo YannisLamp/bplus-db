@@ -305,6 +305,25 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) {
     return AME_ROOT_NOT_EXIST;
   }
 
+  BF_Block *block;
+  BF_Block_Init(&block);
+
+  // Get block number
+  int block_num;
+  CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_num));
+  //might not needed
+
+  //find the file in OpenIndexes
+  for(int i=0;i<MAXOPENFILES;i++){
+
+    if(OpenIndexes[i].fileDesc==fileDesc)//found in location i of the array
+      break;
+  }
+
+  //get root of the file tree
+  int rootNum=OpenIndexes[i].rootBlockNum;
+  CHK_BF_ERR(BF_GetBlock(fileDesc,rootNum,block));
+
   return AME_OK;
 }
 

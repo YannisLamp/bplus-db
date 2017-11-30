@@ -19,12 +19,13 @@ FileMeta filemeta_init(FileMeta);
 typedef struct SearchData {
     int fileDesc;
     int op;
-    int key_in_block;
-    int key_pos;
+    int starting_block;
+    int starting_pos;
     int curr_block;
     int curr_pos;
 } SearchData;
 
+SearchData searchdata_init(SearchData )
 
 
 
