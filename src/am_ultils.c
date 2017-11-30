@@ -19,6 +19,4 @@ int v_cmp(char v_type, void* value1, void* value2) {
     return -2;
 }
 
-int get_prev_dblock(fileDesc, key) {
-  
-}
+RecTravOut rec_trav_insert();

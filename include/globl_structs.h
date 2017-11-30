@@ -41,20 +41,4 @@ SearchData searchdata_init(SearchData);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif /* GLOBL_STRUCTS */
