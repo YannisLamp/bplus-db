@@ -13,3 +13,14 @@ FileMeta filemeta_init(FileMeta fm) {
 
   return fm;
 }
+
+SearchData searchdata_init(SearchData sd) {
+    sd.fileDesc=-1;
+    sd.op=-1;
+    sd.key_in_block=-1;
+    sd.key_pos=-1;
+    sd.curr_block=-1;
+    sd.curr_pos=-1;
+
+    return sd;
+}

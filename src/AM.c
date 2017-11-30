@@ -27,11 +27,10 @@ void AM_Init() {
 
   // Initialize global
   for(int i = 0; i < MAXOPENFILES; i++)
-    filemeta_init(OpenIndexes[i]);
+    OpenIndexes[i]=filemeta_init(OpenIndexes[i]);
 
-
-
-
+  for(int i = 0; i < MAXSCANS; i++)
+    OpenSearches[i]=searchdata_init(OpenSearches[i]);
 
 	return;
 }
@@ -281,7 +280,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     memcpy(rblock_data, &value1, OpenIndexes[fileDesc].attrLength1);
     rblock_data += OpenIndexes[fileDesc].attrLength1;
     memcpy(rblock_data, &dblock_num, sizeof(int));
-    
+
 
 
   }
@@ -299,6 +298,11 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) {
   if (fd == -1) {
     AM_errno = AME_INDEX_FILE_NOT_OPEN;
     return AME_INDEX_FILE_NOT_OPEN;
+  }
+  //Check if there is a root in the file
+  if (OpenIndexes[fileDesc].rootBlockNum = -1) {
+    AM_errno = ROOT_NOT_EXIST;
+    return AME_ROOT_NOT_EXIST;
   }
 
   return AME_OK;
