@@ -3,7 +3,7 @@
 
 FileMeta filemeta_init(FileMeta fm) {
   // Initilize input FileMeta struct
-  fm.fileDesc = -1;
+  fm.fd = -1;
   fm.fileName = NULL;
   fm.attrType1 = '\0';
   fm.attrLength1 = -1;

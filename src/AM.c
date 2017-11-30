@@ -80,13 +80,13 @@ int AM_CreateIndex(char *fileName,
 
 	// Create and open file
 	CHK_BF_ERR(BF_CreateFile(filename));
-	int fileDesc = 0;
-	CHK_BF_ERR(BF_OpenFile(filename, &fileDesc));
+	int fd = 0;
+	CHK_BF_ERR(BF_OpenFile(filename, &fd));
 
 	// Allocate the file's first block
   BF_Block *block;
   BF_Block_Init(&block);
-  CHK_BF_ERR(BF_AllocateBlock(fileDesc, block));
+  CHK_BF_ERR(BF_AllocateBlock(fd, block));
 
   // Initialize it with metadata
   char* block_data = BF_Block_GetData(block);
@@ -116,7 +116,7 @@ int AM_CreateIndex(char *fileName,
   CHK_BF_ERR(BF_UnpinBlock(block));
   // Destroy block and close file
   BF_Block_Destroy(&block);
-  CHK_BF_ERR(BF_CloseFile(fileDesc));
+  CHK_BF_ERR(BF_CloseFile(fd));
 
   return AME_OK;
 }
@@ -142,7 +142,7 @@ int AM_DestroyIndex(char *fileName) {
 int AM_OpenIndex (char *fileName) {
   // Search for the first empty space to store the opened file
   int save_index = 0;
-  while (save_index < MAXOPENFILES && OpenIndexes[save_index].fileDesc != -1)
+  while (save_index < MAXOPENFILES && OpenIndexes[save_index].fd != -1)
     save_index++;
   // If there is no space
   if (save_index == MAXOPENFILES) {
@@ -173,7 +173,7 @@ int AM_OpenIndex (char *fileName) {
   }
 
   // Save file decriptor and filename
-  OpenIndexes[save_index].fileDesc = fd;
+  OpenIndexes[save_index].fd = fd;
   //AUTOOOOOO
   malloc
   OpenIndexes[save_index].fileName =
@@ -209,7 +209,7 @@ int AM_CloseIndex (int fileDesc) {
 
 int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
   // Check if file is open in OpenIndexes[fileDesc]
-  int fd = OpenIndexes[fileDesc].fileDesc;
+  int fd = OpenIndexes[fileDesc].fd;
   if (fd == -1) {
     AM_errno = AME_INDEX_FILE_NOT_OPEN;
     return AME_INDEX_FILE_NOT_OPEN;
@@ -237,7 +237,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 
     // Get block number of the root and save it in OpenIndexes
     int rblock_num;
-    CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &rblock_num));
+    CHK_BF_ERR(BF_GetBlockCounter(fd, &rblock_num));
     rblock_num--;
     OpenIndexes[fileDesc].rootBlockNum = rblock_num;
 
@@ -281,7 +281,15 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     rblock_data += OpenIndexes[fileDesc].attrLength1;
     memcpy(rblock_data, &dblock_num, sizeof(int));
 
-
+    // Unpin and destroy blocks
+    CHK_BF_ERR(BF_UnpinBlock(rblock));
+    BF_Block_Destroy(&rblock);
+    CHK_BF_ERR(BF_UnpinBlock(dblock));
+    BF_Block_Destroy(&dblock);
+  }
+  // Else if tree exists, insert record (value1, value2), according to
+  // B+ tree algorithm
+  else {
 
   }
 
@@ -294,7 +302,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 int AM_OpenIndexScan(int fileDesc, int op, void *value) {
 
   // Check if file is open in OpenIndexes[fileDesc]
-  int fd = OpenIndexes[fileDesc].fileDesc;
+  int fd = OpenIndexes[fileDesc].fd;
   if (fd == -1) {
     AM_errno = AME_INDEX_FILE_NOT_OPEN;
     return AME_INDEX_FILE_NOT_OPEN;

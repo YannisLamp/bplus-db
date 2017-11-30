@@ -1,10 +1,8 @@
 #ifndef GLOBL_STRUCTS
 #define GLOBL_STRUCTS
 
-
-
 typedef struct FileMeta {
-    int fileDesc;
+    int fd;
     char* fileName;
     char attrType1;
     int attrLength1;
