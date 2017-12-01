@@ -18,13 +18,13 @@
     }                                \
   }
 
-
-
 int AM_errno = AME_OK;
+
 
 void AM_Init() {
   // Initialize BF part
   CHK_BF_ERR(BF_Init(LRU));
+
   // Initialize global
   for(int i = 0; i < MAXOPENFILES; i++)
     OpenIndexes[i] = filemeta_init(OpenIndexes[i]);
@@ -90,8 +90,7 @@ int AM_CreateIndex(char *fileName,
 
   // Initialize it with metadata
   char* block_data = BF_Block_GetData(block);
-	// Index file id (.if) (space for \0 at the end for strcmp)
-  char id[4] = ".if";
+  char id[4] = ".if"; // Index file id (.if) (space for \0 at the end for strcmp)
   // TSEKAREEEEE AUTOOOOO +4 gt IPARXEI KAI TO \0 STO TELOS
   memcpy(block_data, id, 4);
 	block_data += 4;
@@ -234,16 +233,13 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     // Initialize data block with id, record number (1), next data block (-1),
     // and finally the record (value1, value2)
     char* block_data = BF_Block_GetData(block);
-    // It is a "data block"
-    char did[4] = ".db";
+    char did[4] = ".db";    // It is a "data block"
     memcpy(block_data, did, 4);
     block_data += 4;
-    // One record will be inserted
-    int temp_i = 1;
+    int temp_i = 1;   // One record will be inserted
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
-    // There is no next data block (-1)
-    temp_i = -1;
+    temp_i = -1;    // There is no next data block (-1)
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
     // Copy input values
@@ -265,16 +261,13 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     CHK_BF_ERR(BF_AllocateBlock(fd, block));
     // Initialize root block with id and key_number (1)
     block_data = BF_Block_GetData(block);
-    // It is an "index block"
-    char rid[4] = ".ib";
+    char rid[4] = ".ib";    // It is an "index block"
     memcpy(block_data, rid, 4);
     block_data += 4;
-    // One key will be inserted
-    temp_i = 1;
+    temp_i = 1;   // One key will be inserted
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
-    // Block number before the first key does not exist yet (-1)
-    temp_i = -1;
+    temp_i = -1;    // Block number before the first key does not exist yet (-1)
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
     // Finally save key, then data block number in the root
@@ -326,12 +319,10 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       // Initialize data block with id, record number (1), next data block,
       // (previous first block) and finally the record (value1, value2)
       char* block_data = BF_Block_GetData(block);
-      // It is a "data block"
-      char did[4] = ".db";
+      char did[4] = ".db";    // It is a "data block"
       memcpy(block_data, did, 4);
       block_data += 4;
-      // One record will be inserted
-      int temp_i = 1;
+      int temp_i = 1;   // One record will be inserted
       memcpy(block_data, &temp_i, sizeof(int));
       block_data += sizeof(int);
       // Next data block is the previous first block
