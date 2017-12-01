@@ -43,25 +43,25 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *valu
   if (strcmp(block_data, ".ib") == 0) {
     // Get number of keys in block
     block_data += 4;
-    int block_key_num = 0;
-    memcpy(&block_key_num, block_data, sizeof(int));
+    int key_num = 0;
+    memcpy(&key_num, block_data, sizeof(int));
     // Get first key
     block_data += 2*sizeof(int);
     void* curr_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
     memcpy(curr_key, block_data, OpenIndexes[fileDesc].attrLength1);
 
     // Then try to find next block
-    while(block_key_num < 1 &&
+    while(key_num < 1 &&
           v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) > -1) {
       // Move on to the next key
       block_data += OpenIndexes[fileDesc].attrLength1 + sizeof(int);
-      block_key_num--;
+      key_num--;
       memcpy(curr_key, block_data, OpenIndexes[fileDesc].attrLength1);
     }
     // Only if it is the last key go to right pointer
     if (v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) > -1)
       block_data += OpenIndexes[fileDesc].attrLength1;
-    // Else normally go to left
+    // Else normally go to left pointer
     else
       block_data -= sizeof(int);
 
@@ -87,25 +87,26 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *valu
   else if (strcmp(block_data, ".db") == 0) {
     // Get number of records (2 attributes) in block
     block_data += 4;
-    int block_rec_num = 0;
-    memcpy(&block_rec_num, block_data, sizeof(int));
+    int record_num = 0;
+    memcpy(&record_num, block_data, sizeof(int));
 
     // Calculate if the new record fits in the block
-
-
+    int record_size = OpenIndexes[fileDesc].attrLength1 +
+                      OpenIndexes[fileDesc].attrLength2;
+    int used_space = 4 + 2*sizeof(int) + record_num*record_size;
     // If it fits, then insert it
+    if (used_space + record_size <= BF_BLOCK_SIZE) {
+      int rem_records = record_num;
 
+    }
     // Else, create a new data block and distribute the records between them in
     // the best way possible (records with the same key value should not be
     // separated)
+    else {
 
-    // Get first key
-    block_data += 2*sizeof(int);
-    void* curr_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
-    memcpy(curr_key, block_data, OpenIndexes[fileDesc].attrLength1);
-
+    }
   }
 
-  BF_Block_Destroy(&root_block);
+  BF_Block_Destroy(&block);
 
 }
