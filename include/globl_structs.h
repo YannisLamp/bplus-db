@@ -16,11 +16,11 @@ FileMeta filemeta_init(FileMeta);
 
 typedef struct SearchData {
     void * info;
-    int fileDesc;//fileDesc isthe location in OpenIndexes
+    int fileDesc;//fileDesc is the location in OpenIndexes
     int op;
     int curr_block;   //block we are in
     int curr_pos;     //position
-    int op_key; //different meaning deppending on op
+    void* op_key; //different meaning deppending on op
 
 
 } SearchData;
