@@ -36,7 +36,7 @@ void searchdata_change_info(SearchData*,int,int,void *);      //thats the functi
 
 
 
-
+void searchdata_free(SearchData*);                   //free the info and initializethe data
 
 
 

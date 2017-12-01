@@ -36,7 +36,17 @@ SearchData searchdata_add_info(SearchData sd,int fileDesc,int op,int block,int p
 }
 
 void searchdata_change_info(SearchData* sd,int block,int pos,void* info){
-  sd.curr_block=block;
-  sd.curr_pos=pos;
-  sd.info=info;
+  sd->curr_block=block;
+  sd->curr_pos=pos;
+  sd->info=info;
+}
+
+void searchdata_free(OpenSearches* sd) {
+  sd->fileDesc=-1;
+  sd->op=-1;
+  sd->curr_block=-1;
+  sd->curr_pos=-1;
+  sd->op_key=-1;
+  free(sd->info);
+  sd.info=NULL;
 }
