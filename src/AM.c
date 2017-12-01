@@ -488,17 +488,78 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
       return AME_INVALID_OP;
   }
 
-
   free(id);
   free(key1);
   free(key2);
-
   return scanDesc;
 }
 
 
 void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
+    int id_sz=4;
+    int key_sz1=OpenIndexes[fileDesc].attrLength1;
+    int key_sz2=OpenIndexes[fileDesc].attrLength2;
+    int pointer_sz=sizeof(int);
 
+    BF_Block *block;
+    BF_Block_Init(&block);
+    char* data;
+    int pointer;
+    char* key1=(char*)malloc(key_sz1);//key1 value
+    char* key2=(char*)malloc(key_sz2);//key2 value
+
+    int fd = OpenIndexes[OpenSearches[scanDesc].fileDesc].fd;
+    int curr_block=OpenSearches[scanDesc].curr_block;
+    int curr_pos=OpenSearches[scanDesc].curr_pos;
+    int op=OpenSearches[scanDesc].op;
+    int key_num;
+    CHK_BF_ERR(BF_GetBlock(fd,curr_block,block));  //get block with number block_num
+    data=BF_Block_GetData(block);
+
+    memcpy(&pointer,data + id_sz + key_num_sz , pointer_sz);
+    memcpy(&key_num,data + id_sz  , key_num_sz);
+
+    if(pointer==-1 && key_num==curr_pos) {
+        AM_errno = AME_END_OF_FILE;
+        return AME_END_OF_FILE;
+    }
+
+    if(key_num==curr_pos) {//go to the next block
+            CHK_BF_ERR(BF_UnpinBlock(block));
+            OpenSearches[scanDesc].curr_pos=0;
+            OpenSearches[scanDesc].curr_block=pointer;
+            CHK_BF_ERR(BF_GetBlock(fd,pointer,block));
+            data=BF_Block_GetData(block);
+    }
+
+    memcpy(key1,data + id_sz + key_num_sz + pointer_sz + curr_pos*key_sz1 + curr_pos*key_sz2 ,key_sz1 );
+
+    switch(op) {
+        case EQUAL :
+            break;
+
+        case NOT_EQUAL :
+            break;
+
+        case LESS_THAN :
+            break;
+
+        case GREATER_THAN :
+            break;
+
+        case LESS_THAN_OR_EQUAL :
+            break;
+
+        case GREATER_THAN_OR_EQUAL :
+            break;
+
+        default :
+    }
+
+    memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+
+
+    return (void*)key2;
 }
 
 

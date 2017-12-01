@@ -26,7 +26,7 @@ extern int AM_errno;
 #define AME_NO_SPACE_FOR_SEARCH -10
 #define AME_CANNOT_DESTROY_SEARCH_OPEN -11
 #define AME_KEY_NOT_EXIST -12
-
+#define AME_END_OF_FILE -13
 
 #define EQUAL 1
 #define NOT_EQUAL 2
