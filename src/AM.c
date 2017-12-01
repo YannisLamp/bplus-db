@@ -296,27 +296,29 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
   // B+ tree algorithm
   else {
     // Initialize block
-    BF_Block *tree_block;
-    BF_Block_Init(&tree_block);
+    BF_Block *root_block;
+    BF_Block_Init(&root_block);
     // First get tree root data
-    CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, tree_block));
-    char* tree_data = BF_Block_GetData(tree_block);
+    CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, root_block));
+    char* root_data = BF_Block_GetData(root_block);
+    // Get number of keys in the root
+    root_data += 4;
+    int root_key_num = 0;
+    memcpy(&root_key_num, root_data, sizeof(int));
+    // Get first block number
+    root_data += sizeof(int);
+    int fblock_num = 0;
+    memcpy(&fblock_num, root_data, sizeof(int));
+    // Get first key
+    root_data += sizeof(int);
+    void* curr_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
+    memcpy(curr_key, root_data, OpenIndexes[fileDesc].attrLength1);
 
     // Then, only if input key (value1) is less than the first key of the
     // root block, and the first pointer of the root does not point to a
     // block (-1), make a new data block, place the record in it and point to it
-
-    // Get first block number 
-    tree_data += 4 + sizeof(int);
-    int fblock_num = 0;
-    memcpy(fblock_num, tree_data, sizeof(int));
-    // Get first key
-    tree_data += sizeof(int);
-    void* fkey = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
-    memcpy(fkey, tree_data, OpenIndexes[fileDesc].attrLength1);
-
     if (fblock_num == -1 &&
-        v_cmp(OpenIndexes[fileDesc].attrType1, value1, fkey) == -1) {
+        v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) == -1) {
       // Allocate data block
       BF_Block *block;
       BF_Block_Init(&block);
@@ -354,13 +356,19 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     }
     // Else APLA KALESE REC
     else {
+      // Find
+      RecTravOut possible_block = rec_trav_insert(int fileDesc, int block_num, );
+
+      if ()
 
     }
 
+
+    free(curr_key);
     // Set dirty, unpin and destroy block
-    BF_Block_SetDirty(tree_block);
-    CHK_BF_ERR(BF_UnpinBlock(tree_block));
-    BF_Block_Destroy(&tree_block);
+    BF_Block_SetDirty(root_block);
+    CHK_BF_ERR(BF_UnpinBlock(root_block));
+    BF_Block_Destroy(&root_block);
   }
   return AME_OK;
 }
