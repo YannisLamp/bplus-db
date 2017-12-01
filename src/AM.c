@@ -383,19 +383,40 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_NO_SPACE_FOR_SEARCH;
   }
 
+//////////////sizes///////////////////
+  int id_sz=4;
+  int key_num_sz=sizeof(int);
+  int pointer_sz=sizeof(int);
+  int key_sz=OpenIndexes[fileDesc].attrLength1;
+/////////////////////////////////////
+
+
+
   BF_Block *block;
   BF_Block_Init(&block);
   int fd=OpenIndexes[fileDesc].fd;
   char* data;
-  char* id;
+
+  char* id=(char*)malloc(id_sz);
+  char* key_number=(char*)malloc(key_num_sz);
+  char* pointer=(char*)malloc(pointer_sz);
+  char* key=(char*)malloc(key_sz);
+
   switch (op) {
     case EQUAL:
       While (1){
         CHK_BF_ERR(BF_GetBlock(fd,OpenIndexes[fileDesc].rootBlockNum,block));
         data=BF_Block_GetData(block);
-        id=(char*)malloc(4);
-        memcpy(id,data,4);
-        if(v_cmp('c',id,".if"){
+        memcpy(id,data,id_sz);
+        if(v_cmp('c',id,".ib")==0){  //search for next indexblock or datablock
+            memcpy(key_number,data+id_sz,key_num_sz);
+            memcpy(pointer,data+id_sz+key_num_sz,pointer_sz);
+            for(int i=0;i<atoi(key_number),i++){
+                memcpy(key,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz,key_sz);
+                if(v_cmp(OpenIndexes[fileDesc].attrType1,key))
+            }
+        }
+        else{//we have a datablock so we serach for key
 
         }
         CHK_BF_ERR(BF_UnpinBlock(block));
@@ -412,6 +433,10 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     case GREATER_THAN_OR_EQUAL:
       break;
     default:
+    free(id);
+    free(key_number);
+    free(pointer);
+    free(key);
     AM_errno = AME_INVALID_OP;
     return AME_INVALID_OP;
   }

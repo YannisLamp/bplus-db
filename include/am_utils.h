@@ -1,7 +1,7 @@
 #ifndef AM_UTILS
 #define AM_UTILS
 
-int v_cmp(char, void*, void*);
+int v_cmp(char, void*, void*);//kalutera na to kanoume char* afoy pernoume memcpy me char*
 
 typedef struct RecTravOut {
     int nblock_id;

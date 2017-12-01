@@ -15,15 +15,24 @@ typedef struct FileMeta {
 FileMeta filemeta_init(FileMeta);
 
 typedef struct SearchData {
+    void * info;
     int fileDesc;//fileDesc isthe location in OpenIndexes
     int op;
-    int starting_block;
-    int starting_pos;
-    int curr_block;
-    int curr_pos;
+    int curr_block;   //block we are in
+    int curr_pos;     //position
+    int op_key; //different meaning deppending on op
+
+
 } SearchData;
 
 SearchData searchdata_init(SearchData);
+SearchData searchdata_add_info(SearchData,int,int,int,int,int); //thats the function we use
+                                                      //at AM_OpenIndexScan
+                                                      //starting and curr are the same
+
+void searchdata_change_info(SearchData*,int,int,void *);      //thats the function we use
+                                                      //at AM_FindNextEntry
+                                                      //change only curr_pos and curr_block
 
 
 
