@@ -223,14 +223,13 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     return AME_INDEX_FILE_NOT_OPEN;
   }
 
-  // Then check if a B+ tree root exists
+  // Check if a B+ tree root exists
   // If not, initialize B+ index tree with the first record
   // (create tree root and the first data block)
   if (OpenIndexes[fileDesc].rootBlockNum = -1) {
-    // Initialize block
+    // Allocate block for the first data block
     BF_Block *block;
     BF_Block_Init(&block);
-    // Allocate block for the first data block
     CHK_BF_ERR(BF_AllocateBlock(fd, block));
     // Initialize data block with id, record number (1), next data block (-1),
     // and finally the record (value1, value2)
@@ -302,13 +301,22 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     // First get tree root data
     CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, tree_block));
     char* tree_data = BF_Block_GetData(tree_block);
+
     // Then, only if input key (value1) is less than the first key of the
     // root block, and the first pointer of the root does not point to a
     // block (-1), make a new data block, place the record in it and point to it
-    void* fkey = NULL;
-    // KAPPA KIPPO
-    //memcpy(tree_data, &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
-    if () {
+
+    // Get first block number 
+    tree_data += 4 + sizeof(int);
+    int fblock_num = 0;
+    memcpy(fblock_num, tree_data, sizeof(int));
+    // Get first key
+    tree_data += sizeof(int);
+    void* fkey = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
+    memcpy(fkey, tree_data, OpenIndexes[fileDesc].attrLength1);
+
+    if (fblock_num == -1 &&
+        v_cmp(OpenIndexes[fileDesc].attrType1, value1, fkey) == -1) {
       // Allocate data block
       BF_Block *block;
       BF_Block_Init(&block);
