@@ -18,13 +18,13 @@
     }                                \
   }
 
-int AM_errno = AME_OK;
 
+
+int AM_errno = AME_OK;
 
 void AM_Init() {
   // Initialize BF part
   CHK_BF_ERR(BF_Init(LRU));
-
   // Initialize global
   for(int i = 0; i < MAXOPENFILES; i++)
     OpenIndexes[i] = filemeta_init(OpenIndexes[i]);
@@ -90,7 +90,8 @@ int AM_CreateIndex(char *fileName,
 
   // Initialize it with metadata
   char* block_data = BF_Block_GetData(block);
-  char id[4] = ".if"; // Index file id (.if) (space for \0 at the end for strcmp)
+	// Index file id (.if) (space for \0 at the end for strcmp)
+  char id[4] = ".if";
   // TSEKAREEEEE AUTOOOOO +4 gt IPARXEI KAI TO \0 STO TELOS
   memcpy(block_data, id, 4);
 	block_data += 4;
@@ -233,13 +234,16 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     // Initialize data block with id, record number (1), next data block (-1),
     // and finally the record (value1, value2)
     char* block_data = BF_Block_GetData(block);
-    char did[4] = ".db";    // It is a "data block"
+    // It is a "data block"
+    char did[4] = ".db";
     memcpy(block_data, did, 4);
     block_data += 4;
-    int temp_i = 1;   // One record will be inserted
+    // One record will be inserted
+    int temp_i = 1;
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
-    temp_i = -1;    // There is no next data block (-1)
+    // There is no next data block (-1)
+    temp_i = -1;
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
     // Copy input values
@@ -261,13 +265,16 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     CHK_BF_ERR(BF_AllocateBlock(fd, block));
     // Initialize root block with id and key_number (1)
     block_data = BF_Block_GetData(block);
-    char rid[4] = ".ib";    // It is an "index block"
+    // It is an "index block"
+    char rid[4] = ".ib";
     memcpy(block_data, rid, 4);
     block_data += 4;
-    temp_i = 1;   // One key will be inserted
+    // One key will be inserted
+    temp_i = 1;
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
-    temp_i = -1;    // Block number before the first key does not exist yet (-1)
+    // Block number before the first key does not exist yet (-1)
+    temp_i = -1;
     memcpy(block_data, &temp_i, sizeof(int));
     block_data += sizeof(int);
     // Finally save key, then data block number in the root
@@ -319,10 +326,12 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       // Initialize data block with id, record number (1), next data block,
       // (previous first block) and finally the record (value1, value2)
       char* block_data = BF_Block_GetData(block);
-      char did[4] = ".db";    // It is a "data block"
+      // It is a "data block"
+      char did[4] = ".db";
       memcpy(block_data, did, 4);
       block_data += 4;
-      int temp_i = 1;   // One record will be inserted
+      // One record will be inserted
+      int temp_i = 1;
       memcpy(block_data, &temp_i, sizeof(int));
       block_data += sizeof(int);
       // Next data block is the previous first block
@@ -510,21 +519,21 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     memcpy(&pointer,data + id_sz + key_num_sz , pointer_sz);
     memcpy(&key_num,data + id_sz  , key_num_sz);
 
-    if(pointer==-1 && key_num==curr_pos) {
+    if(pointer==-1 && key_num==curr_pos) {//there is no next entry
         AM_errno = AME_END_OF_FILE;
         return AME_END_OF_FILE;
     }
 
     if(key_num==curr_pos) {//go to the next block
             CHK_BF_ERR(BF_UnpinBlock(block));
-            OpenSearches[scanDesc].curr_pos=0;
-            OpenSearches[scanDesc].curr_block=pointer;
-            CHK_BF_ERR(BF_GetBlock(fd,pointer,block));
+            OpenSearches[scanDesc].curr_pos=0;          //new block so our position is 0
+            OpenSearches[scanDesc].curr_block=pointer;  //our curr_block now is the pointer of the prwvious block
+            CHK_BF_ERR(BF_GetBlock(fd,pointer,block)); //get new block
             data=BF_Block_GetData(block);
     }
 
     memcpy(key1,data + id_sz + key_num_sz + pointer_sz + curr_pos*key_sz1 + curr_pos*key_sz2 ,key_sz1 );
-
+    memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
     switch(op) {
         case EQUAL :
             break;
