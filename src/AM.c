@@ -392,89 +392,97 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
 //////////////sizes///////////////////
   int id_sz=4;
-  int key_num_sz=sizeof(int);
-  int pointer_sz=sizeof(int);
   int key_sz1=OpenIndexes[fileDesc].attrLength1;
+  int key_sz2=OpenIndexes[fileDesc].attrLength2;
+  int pointer_sz=sizeof(int);
+  int key_num_sz=sizeof(int);
 /////////////////////////////////////
-
-
 
   BF_Block *block;
   BF_Block_Init(&block);
   int fd=OpenIndexes[fileDesc].fd;
   char* data;
 
-  char* id=(char*)malloc(id_sz);                //id of the block
-  char* key_number=(char*)malloc(key_num_sz);   //how many numbers
-  char* ipointer=(char*)malloc(pointer_sz);      //the pointer for next indexblock
-  char* key1=(char*)malloc(key_sz1);              //key value
-  char* dpointer=(char*)malloc(pointer_sz);     //the pointer for the next data block
+  char* id=(char*)malloc(id_sz);    //id of the block
+  int key_number;                   //how many numbers
+  int ipointer;                     //the pointer for next indexblock
+  char* key1=(char*)malloc(key_sz1);//key1 value
+  char* key2=(char*)malloc(key_sz2);//key2 value
+  int dpointer;                     //the pointer for the next data block
 
-int block_num=OpenIndexes[fileDesc].rootBlockNum;
+  int block_num;
 
-  switch (op) {
-    case EQUAL:
-//uparxei periptwsi to pio aristero pointer ths rizas na einai -1
-//oti mporw nabgalw apo malloc na to na bgalw
+  if(op==EQUAL || op==GREATER_THAN || op==GREATER_THAN_OR_EQUAL) { //we have to search the block
+
+      block_num=OpenIndexes[fileDesc].rootBlockNum;
       While (1){
         CHK_BF_ERR(BF_GetBlock(fd,block_num,block));  //get block with number block_num
         data=BF_Block_GetData(block);                 //get the data
         memcpy(id,data,id_sz);
         if(v_cmp('c',id,".ib")==0){                   // indexblock
-            memcpy(key_number,data+id_sz,key_num_sz);
-            memcpy(ipointer,data+id_sz+key_num_sz,pointer_sz);
+            memcpy(&key_number, data + id_sz , key_num_sz);
+            memcpy(&ipointer,data + id_sz + key_num_sz , pointer_sz);
 
-            for(int i=0;i<atoi(key_number),i++){    //check always if the value is smaller
-                memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz,key_sz);
+            for(int i=0;i<key_number,i++){    //check always if the value is smaller
 
-                if(v_cmp(OpenIndexes[fileDesc].attrType1,key,(char*)value)<0){ //go to the left pointer
-                      CHK_BF_ERR(BF_UnpinBlock(block));
-                      block_num=atoi(ipointer);
-                      break;
+                memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz1,key_sz1);
+
+                if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)<0){ //go to the left pointer
+
+                    if(i==0 && ipointer==-1) {  //there is a chance that the first pointer is -1
+                        AM_errno = AME_KEY_NOT_EXIST; //if thats the case the key does not exist in the tree
+                        return AME_KEY_NOT_EXIST;
+                    }
+
+                    CHK_BF_ERR(BF_UnpinBlock(block)); //next pointer found so unpin the block
+                    block_num=ipointer;
+                    break;
                 }
 
-                memcpy(ipointer,data + id_sz + key_num_sz + (i+1)*pointer_sz + (i+1)*key_sz,key_sz);
+                memcpy(&ipointer,data + id_sz + key_num_sz + (i+1)*pointer_sz + (i+1)*key_sz1,pointer_sz);
             }//for finished
+
             CHK_BF_ERR(BF_UnpinBlock(block));//checked all the left pointers for each key so the last remains
-            block_num=atoi(ipointer);
+            block_num=ipointer;
         }
         else{//datablock
             break;//we break from while loop
         }
       }
-        memcpy(key_number,data+id_sz,key_num_sz);//we passed the identification
-        memcpy(dpointer,data+id_sz+key_num_sz,pointer_sz);
-        for(int i=0;i<atoi(key_number)){
-          memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz,key_sz);
+        memcpy(&key_number,data+id_sz,key_num_sz);//we passed the identification
+        memcpy(&dpointer,data+id_sz+key_num_sz,pointer_sz);
 
+        for(int i=0;i<key_number){ //find key1 inside the db block
+          memcpy(key1,data + id_sz + key_num_sz + pointer_sz + i*key_sz1 +i*key_sz2,key_sz1);
+          if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)==0){//found
+              OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,block_num,i,value);//add it to OpenSearches
+              break;
+          }
         }
-      //search for key inside the db block
-      break;
-    case NOT_EQUAL:
-      break;
-    case LESS_THAN:
-      break;
-    case GREATER_THAN:
-      break;
-    case LESS_THAN_OR_EQUAL:
-      break;
-    case GREATER_THAN_OR_EQUAL:
-      break;
-    default:
-    free(id);
-    free(key_number);
-    free(pointer);
-    free(key);
-    AM_errno = AME_INVALID_OP;
-    return AME_INVALID_OP;
+        if(i==key_number){//for finished without finding anything so key does not exist
+            AM_errno = AME_KEY_NOT_EXIST;
+            return AME_KEY_NOT_EXIST;
+         }
+
+  }
+  else if(op==NOT_EQUAL || op==LESS_THAN || op==LESS_THAN_OR_EQUAL){ //we choose the left most block
+
+      block_num=OpenIndexes[fileDesc].dataBlockNum;
+      OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,block_num,0,value);//add it to OpenSearches
+
+  }
+  else{
+      free(id);
+      free(key1);
+      free(key2);
+      AM_errno = AME_INVALID_OP;
+      return AME_INVALID_OP;
   }
 
 
-
-
-  CHK_BF_ERR(BF_GetBlock(fd,OpenIndexes[fileDesc].dataBlockNum,block));
-  BF_UnpinBlock
-  BF_GetBlock
+  free(id);
+  free(key1);
+  free(key2);
 
   return scanDesc;
 }
