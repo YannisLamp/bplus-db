@@ -323,8 +323,8 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       BF_Block *block;
       BF_Block_Init(&block);
       CHK_BF_ERR(BF_AllocateBlock(fd, block));
-      // Initialize data block with id, record number (1), next data block (-1),
-      // and finally the record (value1, value2)
+      // Initialize data block with id, record number (1), next data block,
+      // (previous first block) and finally the record (value1, value2)
       char* block_data = BF_Block_GetData(block);
       // It is a "data block"
       char did[4] = ".db";
@@ -334,7 +334,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       int temp_i = 1;
       memcpy(block_data, &temp_i, sizeof(int));
       block_data += sizeof(int);
-      // Next data block is the current first block
+      // Next data block is the previous first block
       temp_i = OpenIndexes[fileDesc].dataBlockNum;
       memcpy(block_data, &temp_i, sizeof(int));
       block_data += sizeof(int);

@@ -28,7 +28,7 @@ int v_cmp(char v_type, void* value1, void* value2) {
     return -2;
 }
 
-RecTravOut rec_trav_insert(int fileDesc, int block_num, ) {
+RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *value2) {
   // Initialize block and get file descriptor
   BF_Block *block;
   BF_Block_Init(&block);
@@ -51,20 +51,38 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, ) {
     memcpy(curr_key, block_data, OpenIndexes[fileDesc].attrLength1);
 
     // Then try to find next block
-    while(root_key_num < 1 &&
+    while(block_key_num < 1 &&
           v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) > -1) {
       // Move on to the next key
-      root_data += 2*sizeof(int);
-      root_key_num--;
-      memcpy(curr_key, root_data, OpenIndexes[fileDesc].attrLength1);
+      block_data += OpenIndexes[fileDesc].attrLength1 + sizeof(int);
+      block_key_num--;
+      memcpy(curr_key, block_data, OpenIndexes[fileDesc].attrLength1);
     }
+    // Only if it is the last key go to right pointer
+    if (v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) > -1)
+      block_data += OpenIndexes[fileDesc].attrLength1;
+    // Else normally go to left
+    else
+      block_data -= sizeof(int);
+
+    free(curr_key);
+    // Unpin block
+    CHK_BF_ERR(BF_UnpinBlock(root_block));
+
+    // Then call the same function with found_block_num as input block number
+    int found_block_num = 0;
+    memcpy(&found_block_num, block_data, sizeof(int));
+    RecTravOut possible_block = rec_trav_insert(fileDesc, found_block_num, value1, value2);
+
+    // If the returned struct's possible_block.
 
   }
   // Else, if it is a data block, that means that this is where the given
-  // values should be inserted
+  // values should be inserted (end recursion)
   else if (strcmp(block_data, ".db") == 0) {
 
   }
 
+  BF_Block_Destroy(&root_block);
 
 }
