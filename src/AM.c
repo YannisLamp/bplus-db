@@ -387,7 +387,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
   int id_sz=4;
   int key_num_sz=sizeof(int);
   int pointer_sz=sizeof(int);
-  int key_sz=OpenIndexes[fileDesc].attrLength1;
+  int key_sz1=OpenIndexes[fileDesc].attrLength1;
 /////////////////////////////////////
 
 
@@ -397,30 +397,51 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
   int fd=OpenIndexes[fileDesc].fd;
   char* data;
 
-  char* id=(char*)malloc(id_sz);
-  char* key_number=(char*)malloc(key_num_sz);
-  char* pointer=(char*)malloc(pointer_sz);
-  char* key=(char*)malloc(key_sz);
+  char* id=(char*)malloc(id_sz);                //id of the block
+  char* key_number=(char*)malloc(key_num_sz);   //how many numbers
+  char* ipointer=(char*)malloc(pointer_sz);      //the pointer for next indexblock
+  char* key1=(char*)malloc(key_sz1);              //key value
+  char* dpointer=(char*)malloc(pointer_sz);     //the pointer for the next data block
+
+int block_num=OpenIndexes[fileDesc].rootBlockNum;
 
   switch (op) {
     case EQUAL:
+//uparxei periptwsi to pio aristero pointer ths rizas na einai -1
+//oti mporw nabgalw apo malloc na to na bgalw
       While (1){
-        CHK_BF_ERR(BF_GetBlock(fd,OpenIndexes[fileDesc].rootBlockNum,block));
-        data=BF_Block_GetData(block);
+        CHK_BF_ERR(BF_GetBlock(fd,block_num,block));  //get block with number block_num
+        data=BF_Block_GetData(block);                 //get the data
         memcpy(id,data,id_sz);
-        if(v_cmp('c',id,".ib")==0){  //search for next indexblock or datablock
+        if(v_cmp('c',id,".ib")==0){                   // indexblock
             memcpy(key_number,data+id_sz,key_num_sz);
-            memcpy(pointer,data+id_sz+key_num_sz,pointer_sz);
-            for(int i=0;i<atoi(key_number),i++){
-                memcpy(key,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz,key_sz);
-                if(v_cmp(OpenIndexes[fileDesc].attrType1,key))
-            }
+            memcpy(ipointer,data+id_sz+key_num_sz,pointer_sz);
+
+            for(int i=0;i<atoi(key_number),i++){    //check always if the value is smaller
+                memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz,key_sz);
+
+                if(v_cmp(OpenIndexes[fileDesc].attrType1,key,(char*)value)<0){ //go to the left pointer
+                      CHK_BF_ERR(BF_UnpinBlock(block));
+                      block_num=atoi(ipointer);
+                      break;
+                }
+
+                memcpy(ipointer,data + id_sz + key_num_sz + (i+1)*pointer_sz + (i+1)*key_sz,key_sz);
+            }//for finished
+            CHK_BF_ERR(BF_UnpinBlock(block));//checked all the left pointers for each key so the last remains
+            block_num=atoi(ipointer);
         }
-        else{//we have a datablock so we serach for key
+        else{//datablock
+            break;//we break from while loop
+        }
+      }
+        memcpy(key_number,data+id_sz,key_num_sz);//we passed the identification
+        memcpy(dpointer,data+id_sz+key_num_sz,pointer_sz);
+        for(int i=0;i<atoi(key_number)){
+          memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz,key_sz);
 
         }
-        CHK_BF_ERR(BF_UnpinBlock(block));
-      }
+      //search for key inside the db block
       break;
     case NOT_EQUAL:
       break;
@@ -463,8 +484,8 @@ int AM_CloseIndexScan(int scanDesc) {
     AM_errno = AME_CANNOT_DESTROY_SEARCH_OPEN;
     return AME_CANNOT_DESTROY_SEARCH_OPEN;
   }
-  else //if it is initialize again the data
-      OpenSearches[scanDesc] = searchdata_init(OpenSearches[scanDesc]);
+  else //if it is free it
+      OpenSearches[scanDesc] = searchdata_free(OpenSearches[scanDesc]);
   return AME_OK;
 }
 
