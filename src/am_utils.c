@@ -65,8 +65,8 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *valu
     else
       block_data -= sizeof(int);
 
+    // Before the recursive call
     free(curr_key);
-    // Unpin block
     CHK_BF_ERR(BF_UnpinBlock(root_block));
 
     // Then call the same function with found_block_num as input block number
@@ -74,12 +74,35 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *valu
     memcpy(&found_block_num, block_data, sizeof(int));
     RecTravOut possible_block = rec_trav_insert(fileDesc, found_block_num, value1, value2);
 
-    // If the returned struct's possible_block.
+    // If the returned struct's possible_block.nblock_id is not -1, that
+    // means that a new block has been created in a lower level, so a key and a
+    // pointer to it should be added in this block
+    if (possible_block.nblock_id != -1) {
+
+    }
 
   }
   // Else, if it is a data block, that means that this is where the given
   // values should be inserted (end recursion)
   else if (strcmp(block_data, ".db") == 0) {
+    // Get number of records (2 attributes) in block
+    block_data += 4;
+    int block_rec_num = 0;
+    memcpy(&block_rec_num, block_data, sizeof(int));
+
+    // Calculate if the new record fits in the block
+
+
+    // If it fits, then insert it
+
+    // Else, create a new data block and distribute the records between them in
+    // the best way possible (records with the same key value should not be
+    // separated)
+
+    // Get first key
+    block_data += 2*sizeof(int);
+    void* curr_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
+    memcpy(curr_key, block_data, OpenIndexes[fileDesc].attrLength1);
 
   }
 
