@@ -155,7 +155,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   // First check if current block is an index block or a data block
   // If it is an index block, continue traversal (recursion)
   // (in order to find the right data block for the values to be inserted into)
-  if (strcmp(block_data_strt, ".ib") == 0) {
+  if (strcmp(block_data, ".ib") == 0) {
     // Get number of keys in block
     block_data += 4;
     int key_num = 0;
@@ -193,7 +193,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
 
       // Calculate used space and check if a new key fits in the block
       int used_space = 4 + 2*sizeof(int) + key_num*key_plus_ptr_size;
-      // If it fits, then insert it after the found_key_pos
+      // If it fits, then insert it after the found_block_pos
       if (used_space + key_plus_ptr_size <= BF_BLOCK_SIZE) {
         // If the key to be inserted will go last, only insert it
         if (found_block_pos == key_num) {
@@ -249,6 +249,9 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         BF_Block *new_block;
         BF_Block_Init(&new_block);
         CHK_BF_ERR(BF_AllocateBlock(fd, new_block));
+        int new_block_id = 0;
+        CHK_BF_ERR(BF_GetBlockCounter(fd, &new_block_id));
+        new_block_id--;
         // Initialize index block with id
         new_block_data = BF_Block_GetData(new_block);
         char rid[4] = ".ib"; // It is an "index block"
@@ -263,11 +266,63 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         memcpy(new_block_data, new_key_num, sizeof(int));
         new_block_data += sizeof(int);
 
-        // Copy keys and block numbers to the new block
-        for (i = send_key_pos; i < all_key_num; i++) {
-          
+        // Allocate a buffer to split the keys
+        char* buffer = malloc(all_key_num*key_plus_ptr_size + sizeof(int));
+        // Copy first block number
+        memcpy(buffer, block_data, sizeof(int));
+        int copied = 0;
+        // Copy keys and block numbers to a buffer
+        for (int i = 0; i < all_key_num; i++) {
+          if (i == found_block_pos) {
+            memcpy(buffer + sizeof(int) + i*key_plus_ptr_size,
+                   possible_block.nblock_strt_key,
+                   OpenIndexes[fileDesc].attrLength1);
+            memcpy(buffer + sizeof(int) + i*key_plus_ptr_size + OpenIndexes[fileDesc].attrLength1,
+                   &possible_block.nblock_id,
+                   OpenIndexes[fileDesc].attrLength2);
+            copied = 1;
+          }
+          else {
+            memcpy(buffer + sizeof(int) + i*key_plus_ptr_size,
+                   block_data + sizeof(int) + (i - copied)*key_plus_ptr_size,
+                   key_plus_ptr_size);
+          }
         }
+        // Divide keys between the blocks
+        memcpy(block_data, buffer, sizeof(int));
+        new_block_i = 0;
+        for (int i = 0; i < all_key_num; i++) {
+          if (i < send_key_pos) {
+            memcpy(block_data + sizeof(int) + i*key_plus_ptr_size,
+                   buffer + sizeof(int) + i*key_plus_ptr_size,
+                   key_plus_ptr_size);
+          }
+          else if (i > send_key_pos) {
+            memcpy(new_block_data + sizeof(int) + new_block_i*key_plus_ptr_size,
+                   buffer + sizeof(int) + i*key_plus_ptr_size,
+                   key_plus_ptr_size);
+            new_block_i++;
+          }
+        }
+        // Pass the output values to the possible_block struct
+        memcpy(possible_block.nblock_strt_key,
+               buffer + sizeof(int) + send_key_pos*key_plus_ptr_size,
+               OpenIndexes[fileDesc].attrLength1);
+        memcpy(possible_block.nblock_id,
+               new_block_id,
+               sizeof(int));
 
+        // Free buffer
+        free(buffer);
+        // Dirty and unpin blocks
+        // Original data block
+        BF_Block_SetDirty(block);
+        CHK_BF_ERR(BF_UnpinBlock(block));
+        // New data block
+        BF_Block_SetDirty(new_block);
+        CHK_BF_ERR(BF_UnpinBlock(new_block));
+        // Destroy new block
+        BF_Block_Destroy(&new_block);
       }
     // Else just return the same output (possible_block with nblock_id == -1)
     }
@@ -328,11 +383,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       }
 
       // Increment the block's second value (number of records in it) by one
-      block_data -= 2*sizeof(int);
-      int new_record_num = 0;
-      memcpy(&new_record_num, block_data, sizeof(int));
-      new_record_num++;
-      memcpy(block_data, &new_record_num, sizeof(int));
+      memcpy(block_data - 2*sizeof(int), &(record_num + 1), sizeof(int));
 
       // Set dirty and unpin block
       BF_Block_SetDirty(block);
@@ -343,8 +394,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     // separated)
     else {
       // First copy all records to a buffer that has enough space for one more
-      char* buffer_strt = malloc((record_num + 1) * record_size);
-      char* buffer = buffer_strt;
+      char* buffer= malloc((record_num + 1) * record_size);
       block_data += 2*sizeof(int);
       memcpy(buffer, block_data, (record_num + 1) * record_size);
       // Find out where the new record's position should be in the buffer
@@ -385,9 +435,83 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
 
 
 
+      all_key_num = key_num + 1;
+      // Find out which key to send to the upper level
+      // The right block will have more keys if the key number is even
+      send_key_pos = all_key_num/2 + 1;
+
+      // Update the key number of the original index block
+      memcpy(block_data - sizeof(int), send_key_pos, sizeof(int));
+
+      // Create new index block
+      BF_Block *new_block;
+      BF_Block_Init(&new_block);
+      CHK_BF_ERR(BF_AllocateBlock(fd, new_block));
+      int new_block_id = 0;
+      CHK_BF_ERR(BF_GetBlockCounter(fd, &new_block_id));
+      new_block_id--;
+      // Initialize index block with id
+      new_block_data = BF_Block_GetData(new_block);
+      char rid[4] = ".ib"; // It is an "index block"
+      memcpy(new_block_data, rid, 4);
+      new_block_data += 4;
+      // Initialize index block with key number
+      int new_key_num = 0;
+      if (all_key_num % 2 == 1)
+         new_key_num = send_key_pos;
+      else
+        new_key_num = send_key_pos - 1
+      memcpy(new_block_data, new_key_num, sizeof(int));
+      new_block_data += sizeof(int);
+
+      // Allocate a buffer to split the keys
+      char* buffer = malloc(all_key_num*key_plus_ptr_size + sizeof(int));
+      // Copy first block number
+      memcpy(buffer, block_data, sizeof(int));
+      int copied = 0;
+      // Copy keys and block numbers to a buffer
+      for (int i = 0; i < all_key_num; i++) {
+        if (i == found_block_pos) {
+          memcpy(buffer + sizeof(int) + i*key_plus_ptr_size,
+                 possible_block.nblock_strt_key,
+                 OpenIndexes[fileDesc].attrLength1);
+          memcpy(buffer + sizeof(int) + i*key_plus_ptr_size + OpenIndexes[fileDesc].attrLength1,
+                 &possible_block.nblock_id,
+                 OpenIndexes[fileDesc].attrLength2);
+          copied = 1;
+        }
+        else {
+          memcpy(buffer + sizeof(int) + i*key_plus_ptr_size,
+                 block_data + sizeof(int) + (i - copied)*key_plus_ptr_size,
+                 key_plus_ptr_size);
+        }
+      }
+      // Divide keys between the blocks
+      memcpy(block_data, buffer, sizeof(int));
+      new_block_i = 0;
+      for (int i = 0; i < all_key_num; i++) {
+        if (i < send_key_pos) {
+          memcpy(block_data + sizeof(int) + i*key_plus_ptr_size,
+                 buffer + sizeof(int) + i*key_plus_ptr_size,
+                 key_plus_ptr_size);
+        }
+        else if (i > send_key_pos) {
+          memcpy(new_block_data + sizeof(int) + new_block_i*key_plus_ptr_size,
+                 buffer + sizeof(int) + i*key_plus_ptr_size,
+                 key_plus_ptr_size);
+          new_block_i++;
+        }
+      }
+      // Pass the output values to the possible_block struct
+      memcpy(possible_block.nblock_strt_key,
+             buffer + sizeof(int) + send_key_pos*key_plus_ptr_size,
+             OpenIndexes[fileDesc].attrLength1);
+      memcpy(possible_block.nblock_id,
+             new_block_id,
+             sizeof(int));
 
       // Free buffer
-      free(buffer_strt);
+      free(buffer);
       // Dirty and unpin blocks
       // Original data block
       BF_Block_SetDirty(block);
