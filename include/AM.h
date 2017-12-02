@@ -6,8 +6,8 @@
 
 #define MAXOPENFILES 20
 #define MAXSCANS 20
-extern FileMeta[MAXOPENFILES] OpenIndexes;
-extern SearchData[MAXSCANS] OpenSearches;
+extern FileMeta OpenIndexes[MAXOPENFILES];
+extern SearchData OpenSearches[MAXSCANS];
 
 /* Error codes */
 
