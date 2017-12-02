@@ -8,7 +8,7 @@ int v_cmp(char v_type, void* value1, void* value2) {
   if (v_type == INTEGER) {
     if ((*(int*) value1) < (*(int*) value2))
       return -1;
-    else if ((*(int*) value1) < (*(int*) value2))
+    else if ((*(int*) value1) > (*(int*) value2))
       return 1;
     else
       return 0;
@@ -16,7 +16,7 @@ int v_cmp(char v_type, void* value1, void* value2) {
   else if (v_type == FLOAT) {
     if ((*(float *)value1) < (*(float *)value2))
       return -1;
-    else if ((*(float *)value1) < (*(float *)value2))
+    else if ((*(float *)value1) > (*(float *)value2))
       return 1;
     else
       return 0;
@@ -85,6 +85,8 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *valu
   // Else, if it is a data block, that means that this is where the given
   // values should be inserted (end recursion)
   else if (strcmp(block_data, ".db") == 0) {
+    // Allocate space for a key value
+    void* curr_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
     // Get number of records (2 attributes) in block
     block_data += 4;
     int record_num = 0;
@@ -96,8 +98,15 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *valu
     int used_space = 4 + 2*sizeof(int) + record_num*record_size;
     // If it fits, then insert it
     if (used_space + record_size <= BF_BLOCK_SIZE) {
-      int rem_records = record_num;
+      // Get first record key value
+      block_data += 2*sizeof(int);
+      memcpy(curr_key, block_data, OpenIndexes[fileDesc].attrLength1);
+      // Find out where
+      int move_pos = 0;
+      while (move_pos < record_num &&
+            v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) == -1) {
 
+      }
     }
     // Else, create a new data block and distribute the records between them in
     // the best way possible (records with the same key value should not be
