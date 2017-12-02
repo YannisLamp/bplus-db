@@ -30,9 +30,6 @@ SearchData searchdata_add_info(SearchData,int,int,int,int,int); //thats the func
                                                       //at AM_OpenIndexScan
                                                       //starting and curr are the same
 
-void searchdata_change_info(SearchData*,int,int,void *);      //thats the function we use
-                                                      //at AM_FindNextEntry
-                                                      //change only curr_pos and curr_block
 
 
 
