@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "bf.h"
@@ -23,15 +24,13 @@ int AM_errno = AME_OK;
 
 void AM_Init() {
   // Initialize BF part
-  CHK_BF_ERR(BF_Init(LRU));
+  BF_Init(LRU);
 
   // Initialize global
   for(int i = 0; i < MAXOPENFILES; i++)
     OpenIndexes[i] = filemeta_init(OpenIndexes[i]);
   for(int i = 0; i < MAXSCANS; i++)
     OpenSearches[i] = searchdata_init(OpenSearches[i]);
-
-	return;
 }
 
 
@@ -62,14 +61,14 @@ int AM_CreateIndex(char *fileName,
   // Attribute 2
 	if (attrType2 == INTEGER || attrType2 == FLOAT) {
     if (attrLength2 != 4) {
-      AM_errno = AME_WRONG_ATTR_LENGTH;
-		  return AME_WRONG_ATTR_LENGTH;
+      AM_errno = AME_CREATE_INPUT_ERROR;
+		  return AME_CREATE_INPUT_ERROR;
     }
 	}
   else if (attrType2 == STRING) {
     if (attrLength2 < 1 || attrLength2 > 255) {
-      AM_errno = AME_WRONG_ATTR_LENGTH;
-		  return AME_WRONG_ATTR_LENGTH;
+      AM_errno = AME_CREATE_INPUT_ERROR;
+		  return AME_CREATE_INPUT_ERROR;
     }
   }
   else {
@@ -78,9 +77,9 @@ int AM_CreateIndex(char *fileName,
   }
 
 	// Create and open file
-	CHK_BF_ERR(BF_CreateFile(filename));
+	CHK_BF_ERR(BF_CreateFile(fileName));
 	int fd = 0;
-	CHK_BF_ERR(BF_OpenFile(filename, &fd));
+	CHK_BF_ERR(BF_OpenFile(fileName, &fd));
 
 	// Allocate the file's first block
   BF_Block *block;
@@ -131,9 +130,19 @@ int AM_DestroyIndex(char *fileName) {
     }
     i++;
   }
+  // Also check if there is an ongoing search in the same file
+  for(int i = 0; i < MAXSCANS; i++) {
+    if (OpenSearches[i].fileDesc != -1) {
+      if (strcmp(OpenIndexes[OpenSearches[i].fileDesc].fileName,
+                 OpenIndexes[fileDesc].filename == 0) {
+        AM_errno = CANNOT_DESTROY_SEARCH_OPEN;
+        return CANNOT_DESTROY_SEARCH_OPEN;
+      }
+    }
+  }
   // If not, delete file
   // MPOREI NA THELEI ./ (GIA DIR)
-  remove(filename);
+  remove(fileName);
   return AME_OK;
 }
 
