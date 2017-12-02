@@ -8,6 +8,8 @@ typedef struct RecTravOut {
     void* nblock_strt_key;
 } RecTravOut;
 
+int create_leftmost_block(int fileDesc, void *value1, void *value2);
+int init_bptree(int fileDesc, void *value1, void *value2);
 RecTravOut rec_trav_insert();
 
 

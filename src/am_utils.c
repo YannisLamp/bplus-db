@@ -28,14 +28,129 @@ int v_cmp(char v_type, void* value1, void* value2) {
     return -2;
 }
 
-RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *value2) {
+int init_bptree(int fileDesc, void *value1, void *value2) {
   // Initialize block and get file descriptor
   BF_Block *block;
   BF_Block_Init(&block);
   int fd = OpenIndexes[fileDesc].fd;
   // Get block data
-  CHK_BF_ERR(BF_GetBlock(fd, block_num, block));
-  char* block_data = BF_Block_GetData(tree_block);
+  CHK_BF_ERR(BF_GetBlock(fd, block_id, block));
+  char* block_data = BF_Block_GetData(block);
+
+  // Initialize data block with id, record number (1), next data block id (-1),
+  // and finally the record (value1, value2)
+  char* block_data = BF_Block_GetData(block);
+  // It is a "data block"
+  char did[4] = ".db";
+  memcpy(block_data, did, 4);
+  block_data += 4;
+  // One record will be inserted
+  int temp_i = 1;
+  memcpy(block_data, &temp_i, sizeof(int));
+  block_data += sizeof(int);
+  // There is no next data block (id = -1)
+  temp_i = -1;
+  memcpy(block_data, &temp_i, sizeof(int));
+  block_data += sizeof(int);
+  // Copy input values
+  memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
+  block_data += OpenIndexes[fileDesc].attrLength1;
+  memcpy(block_data, &value2, OpenIndexes[fileDesc].attrLength2);
+
+  // Get block id of the data block and save it in OpenIndexes
+  int block_id = 0;
+  CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_id));
+  block_id--;
+  OpenIndexes[fileDesc].dataBlockNum = block_id;
+
+  // Set dirty and unpin block
+  BF_Block_SetDirty(block);
+  CHK_BF_ERR(BF_UnpinBlock(block));
+
+  // Allocate block for root
+  CHK_BF_ERR(BF_AllocateBlock(fd, block));
+  // Initialize root block with id and key_number (1)
+  block_data = BF_Block_GetData(block);
+  // It is an "index block"
+  char rid[4] = ".ib";
+  memcpy(block_data, rid, 4);
+  block_data += 4;
+  // One key will be inserted
+  temp_i = 1;
+  memcpy(block_data, &temp_i, sizeof(int));
+  block_data += sizeof(int);
+  // Block number before the first key does not exist yet (-1)
+  temp_i = -1;
+  memcpy(block_data, &temp_i, sizeof(int));
+  block_data += sizeof(int);
+  // Finally save key, then data block number in the root
+  memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
+  block_data += OpenIndexes[fileDesc].attrLength1;
+  memcpy(block_data, &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
+
+  // Get block id of the root and save it in OpenIndexes
+  CHK_BF_ERR(BF_GetBlockCounter(fd, &block_id));
+  block_id--;
+  OpenIndexes[fileDesc].rootBlockNum = block_id;
+
+  // Set dirty, unpin and destroy block
+  BF_Block_SetDirty(block);
+  CHK_BF_ERR(BF_UnpinBlock(block));
+  BF_Block_Destroy(&block);
+
+  return AME_OK;
+}
+
+int create_leftmost_block(int fileDesc, void *value1, void *value2) {
+  // Initialize block and get file descriptor
+  BF_Block *block;
+  BF_Block_Init(&block);
+  int fd = OpenIndexes[fileDesc].fd;
+  // Allocate leftmost data block
+  CHK_BF_ERR(BF_AllocateBlock(fd, block));
+
+  // Initialize data block with id, record number (1), next data block,
+  // (previous first block) and finally the record (value1, value2)
+  char* block_data = BF_Block_GetData(block);
+  // It is a "data block"
+  char did[4] = ".db";
+  memcpy(block_data, did, 4);
+  block_data += 4;
+  // One record will be inserted
+  int temp_i = 1;
+  memcpy(block_data, &temp_i, sizeof(int));
+  block_data += sizeof(int);
+  // Next data block is the previous first block
+  temp_i = OpenIndexes[fileDesc].dataBlockNum;
+  memcpy(block_data, &temp_i, sizeof(int));
+  block_data += sizeof(int);
+  // Copy input values
+  memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
+  block_data += OpenIndexes[fileDesc].attrLength1;
+  memcpy(block_data, &value2, OpenIndexes[fileDesc].attrLength2);
+
+  // Get block id of the data block and save it in OpenIndexes
+  int block_id = 0;
+  CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_id));
+  block_id--;
+  OpenIndexes[fileDesc].dataBlockNum = block_id;
+
+  // Set dirty and unpin and destroy block
+  BF_Block_SetDirty(block);
+  CHK_BF_ERR(BF_UnpinBlock(block));
+  BF_Block_Destroy(&block);
+
+  return AME_OK;
+}
+
+RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value2) {
+  // Initialize block and get file descriptor
+  BF_Block *block;
+  BF_Block_Init(&block);
+  int fd = OpenIndexes[fileDesc].fd;
+  // Get block data
+  CHK_BF_ERR(BF_GetBlock(fd, block_id, block));
+  char* block_data = BF_Block_GetData(block);
 
   // First check if current block is an index block or a data block
   // If it is an index block, continue traversal (recursion)
@@ -65,14 +180,14 @@ RecTravOut rec_trav_insert(int fileDesc, int block_num, void *value1, void *valu
     else
       block_data -= sizeof(int);
 
+    int found_block_id = 0;
+    memcpy(&found_block_id, block_data, sizeof(int));
+
     // Before the recursive call
     free(curr_key);
     CHK_BF_ERR(BF_UnpinBlock(root_block));
-
     // Then call the same function with found_block_num as input block number
-    int found_block_num = 0;
-    memcpy(&found_block_num, block_data, sizeof(int));
-    RecTravOut possible_block = rec_trav_insert(fileDesc, found_block_num, value1, value2);
+    RecTravOut possible_block = rec_trav_insert(fileDesc, found_block_id, value1, value2);
 
     // If the returned struct's possible_block.nblock_id is not -1, that
     // means that a new block has been created in a lower level, so a key and a

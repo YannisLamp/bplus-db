@@ -25,10 +25,10 @@ int AM_errno = AME_OK;
 void AM_Init() {
   // Initialize BF part
   CHK_BF_ERR(BF_Init(LRU));
+
   // Initialize global
   for(int i = 0; i < MAXOPENFILES; i++)
     OpenIndexes[i] = filemeta_init(OpenIndexes[i]);
-
   for(int i = 0; i < MAXSCANS; i++)
     OpenSearches[i] = searchdata_init(OpenSearches[i]);
 
@@ -222,152 +222,107 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     AM_errno = AME_INDEX_FILE_NOT_OPEN;
     return AME_INDEX_FILE_NOT_OPEN;
   }
+  int ret_value = AME_OK;
 
   // Check if a B+ tree root exists
   // If not, initialize B+ index tree with the first record
   // (create tree root and the first data block)
   if (OpenIndexes[fileDesc].rootBlockNum = -1) {
-    // Allocate block for the first data block
-    BF_Block *block;
-    BF_Block_Init(&block);
-    CHK_BF_ERR(BF_AllocateBlock(fd, block));
-    // Initialize data block with id, record number (1), next data block (-1),
-    // and finally the record (value1, value2)
-    char* block_data = BF_Block_GetData(block);
-    // It is a "data block"
-    char did[4] = ".db";
-    memcpy(block_data, did, 4);
-    block_data += 4;
-    // One record will be inserted
-    int temp_i = 1;
-    memcpy(block_data, &temp_i, sizeof(int));
-    block_data += sizeof(int);
-    // There is no next data block (-1)
-    temp_i = -1;
-    memcpy(block_data, &temp_i, sizeof(int));
-    block_data += sizeof(int);
-    // Copy input values
-    memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
-    block_data += OpenIndexes[fileDesc].attrLength1;
-    memcpy(block_data, &value2, OpenIndexes[fileDesc].attrLength2);
-
-    // Get block number of the data block and save it in OpenIndexes
-    int block_num = 0;
-    CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_num));
-    block_num--;
-    OpenIndexes[fileDesc].dataBlockNum = block_num;
-
-    // Set dirty and unpin block
-    BF_Block_SetDirty(block);
-    CHK_BF_ERR(BF_UnpinBlock(block));
-
-    // Allocate block for root
-    CHK_BF_ERR(BF_AllocateBlock(fd, block));
-    // Initialize root block with id and key_number (1)
-    block_data = BF_Block_GetData(block);
-    // It is an "index block"
-    char rid[4] = ".ib";
-    memcpy(block_data, rid, 4);
-    block_data += 4;
-    // One key will be inserted
-    temp_i = 1;
-    memcpy(block_data, &temp_i, sizeof(int));
-    block_data += sizeof(int);
-    // Block number before the first key does not exist yet (-1)
-    temp_i = -1;
-    memcpy(block_data, &temp_i, sizeof(int));
-    block_data += sizeof(int);
-    // Finally save key, then data block number in the root
-    memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
-    block_data += OpenIndexes[fileDesc].attrLength1;
-    memcpy(block_data, &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
-
-    // Get block number of the root and save it in OpenIndexes
-    CHK_BF_ERR(BF_GetBlockCounter(fd, &block_num));
-    block_num--;
-    OpenIndexes[fileDesc].rootBlockNum = rblock_num;
-
-    // Set dirty, unpin and destroy block
-    BF_Block_SetDirty(block);
-    CHK_BF_ERR(BF_UnpinBlock(block));
-    BF_Block_Destroy(&block);
+    ret_value = init_bptree(fileDesc, value1, value2);
   }
   // Else if tree exists, insert record (value1, value2), according to
   // B+ tree algorithm
   else {
     // Initialize block
-    BF_Block *root_block;
-    BF_Block_Init(&root_block);
+    BF_Block *block;
+    BF_Block_Init(&block);
     // First get tree root data
-    CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, root_block));
-    char* root_data = BF_Block_GetData(root_block);
-    // Get number of keys in the root
-    root_data += 4;
-    int root_key_num = 0;
-    memcpy(&root_key_num, root_data, sizeof(int));
-    // Get first block number
+    CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, block));
+    char* root_data = BF_Block_GetData(block);
+    // Get first block id
     root_data += sizeof(int);
-    int fblock_num = 0;
-    memcpy(&fblock_num, root_data, sizeof(int));
+    int first_block_id = 0;
+    memcpy(&first_block_id, root_data, sizeof(int));
     // Get first key
     root_data += sizeof(int);
     void* curr_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
     memcpy(curr_key, root_data, OpenIndexes[fileDesc].attrLength1);
+    // Unpin root block
+    root_data = NULL;
+    CHK_BF_ERR(BF_UnpinBlock(block));
 
     // Then, only if input key (value1) is less than the first key of the
     // root block, and the first pointer of the root does not point to a
     // block (-1), make a new data block, place the record in it and point to it
     if (fblock_num == -1 &&
         v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) == -1) {
-      // Allocate data block
-      BF_Block *block;
-      BF_Block_Init(&block);
-      CHK_BF_ERR(BF_AllocateBlock(fd, block));
-      // Initialize data block with id, record number (1), next data block,
-      // (previous first block) and finally the record (value1, value2)
-      char* block_data = BF_Block_GetData(block);
-      // It is a "data block"
-      char did[4] = ".db";
-      memcpy(block_data, did, 4);
-      block_data += 4;
-      // One record will be inserted
-      int temp_i = 1;
-      memcpy(block_data, &temp_i, sizeof(int));
-      block_data += sizeof(int);
-      // Next data block is the previous first block
-      temp_i = OpenIndexes[fileDesc].dataBlockNum;
-      memcpy(block_data, &temp_i, sizeof(int));
-      block_data += sizeof(int);
-      // Copy input values
-      memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
-      block_data += OpenIndexes[fileDesc].attrLength1;
-      memcpy(block_data, &value2, OpenIndexes[fileDesc].attrLength2);
+      // Call create_leftmost_block to create the new block, insert the new
+      // record in it and change the OpenIndexes[fileDesc]
+      ret_value = create_leftmost_block(fileDesc, value1, value2);
 
-      // Get block number of the data block and save it in OpenIndexes
-      int block_num = 0;
-      CHK_BF_ERR(BF_GetBlockCounter(fileDesc, &block_num));
-      block_num--;
-      OpenIndexes[fileDesc].dataBlockNum = block_num;
+      // Then change the root block so that it points to it
+      // (insert the leftmost block id in the root block)
+      CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, block));
+      char* root_data = BF_Block_GetData(block);
+      root_data += 4 + sizeof(int);
+      memcpy(root_data, OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
 
-      // Set dirty, unpin and destroy block
+      // Set dirty and unpin root block
       BF_Block_SetDirty(block);
+      root_data = NULL;
       CHK_BF_ERR(BF_UnpinBlock(block));
-      BF_Block_Destroy(&block);
     }
-    // Else APLA KALESE REC
+    // Else call recursive function rec_trav_insert for the tree root
     else {
-      // Find
-      RecTravOut possible_block = rec_trav_insert(int fileDesc, int block_num, );
 
-      if ()
+      RecTravOut possible_block = rec_trav_insert(fileDesc, OpenIndexes[fileDesc].rootBlockNum,
+                                                  value1, value2);
+      // If the returned struct's possible_block.nblock_id is not -1, that
+      // means that a new block has been created in the same level a the root,
+      // so a new root should be created to point to both this and the new block
+      if (possible_block.nblock_id != -1) {
+        // Allocate block for root
+        CHK_BF_ERR(BF_AllocateBlock(fd, block));
+        // Initialize root block with id and key_number (1)
+        new_root_data = BF_Block_GetData(block);
+        // Get new root block id
+        int new_root_id = 0;
+        CHK_BF_ERR(BF_GetBlockCounter(fd, &new_root_id));
+        new_root_id--;
+        // It is an "index block"
+        char rid[4] = ".ib";
+        memcpy(new_root_data, rid, 4);
+        new_root_data += 4;
+        // One key will be inserted
+        temp_i = 1;
+        memcpy(new_root_data, &temp_i, sizeof(int));
+        new_root_data += sizeof(int);
+        // Block number before the first key is the previous root
+        temp_i = OpenIndexes[fileDesc].rootBlockNum;
+        memcpy(new_root_data, &temp_i, sizeof(int));
+        new_root_data += sizeof(int);
+        // Finally save key, then the new data block id in the new root
+        memcpy(new_root_data, possible_block.nblock_strt_key, OpenIndexes[fileDesc].attrLength1);
+        new_root_data += OpenIndexes[fileDesc].attrLength1;
+        memcpy(new_root_data, &possible_block.nblock_id, sizeof(int));
 
+        // After the data transfer from the possible_block struct, free the
+        // allocated memory for saving the key
+        free(possible_block.nblock_strt_key);
+
+        // Set dirty and unpin new root block
+        BF_Block_SetDirty(block);
+        new_root_data = NULL;
+        CHK_BF_ERR(BF_UnpinBlock(block));
+
+        // Save the new root id in the global struct OpenIndexes
+        OpenIndexes[fileDesc].rootBlockNum = new_root_id;
+
+      }
     }
 
 
     free(curr_key);
-    // Set dirty, unpin and destroy block
-    BF_Block_SetDirty(root_block);
-    CHK_BF_ERR(BF_UnpinBlock(root_block));
     BF_Block_Destroy(&root_block);
   }
   return AME_OK;
