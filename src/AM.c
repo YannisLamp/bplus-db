@@ -463,7 +463,17 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
         for(int i=0;i<key_number){ //find key1 inside the db block
           memcpy(key1,data + id_sz + key_num_sz + pointer_sz + i*key_sz1 +i*key_sz2,key_sz1);
-          if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)==0){//found
+          //no reason to make different if statements
+          //we did only because one if statement would be too large
+          if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)==0 && op==EQUAL ){//found
+              OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,block_num,i,value);//add it to OpenSearches
+              break;
+          }
+          else if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)>0 && op==GREATER_THAN ){
+              OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,block_num,i,value);//add it to OpenSearches
+              break;
+          }
+          else if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)>=0 && op==GREATER_THAN_OR_EQUAL ){
               OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,block_num,i,value);//add it to OpenSearches
               break;
           }
@@ -497,6 +507,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
 void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     int id_sz=4;
+    int fileDesc=OpenSearches[scanDesc].fileDesc;
     int key_sz1=OpenIndexes[fileDesc].attrLength1;
     int key_sz2=OpenIndexes[fileDesc].attrLength2;
     int pointer_sz=sizeof(int);
@@ -508,10 +519,11 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     char* key1=(char*)malloc(key_sz1);//key1 value
     char* key2=(char*)malloc(key_sz2);//key2 value
 
-    int fd = OpenIndexes[OpenSearches[scanDesc].fileDesc].fd;
+    int fd = OpenIndexes[fileDesc].fd;
     int curr_block=OpenSearches[scanDesc].curr_block;
     int curr_pos=OpenSearches[scanDesc].curr_pos;
     int op=OpenSearches[scanDesc].op;
+    int op_key=OpenSearches[scanDesc].op_key;
     int key_num;
     CHK_BF_ERR(BF_GetBlock(fd,curr_block,block));  //get block with number block_num
     data=BF_Block_GetData(block);
@@ -521,7 +533,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
 
     if(pointer==-1 && key_num==curr_pos) {//there is no next entry
         AM_errno = AME_END_OF_FILE;
-        return AME_END_OF_FILE;
+        return NULL;
     }
 
     if(key_num==curr_pos) {//go to the next block
@@ -533,33 +545,85 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     }
 
     memcpy(key1,data + id_sz + key_num_sz + pointer_sz + curr_pos*key_sz1 + curr_pos*key_sz2 ,key_sz1 );
-    memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+    //memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
     switch(op) {
         case EQUAL :
+            if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)==0){
+                memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+                OpenSearches[scanDesc].curr_pos++;
+            }
+            else{
+                AM_errno = AME_EOF;
+                return NULL;
+            }
             break;
-
         case NOT_EQUAL :
+            if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)!=0) {
+                memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+                OpenSearches[scanDesc].curr_pos++;
+            }
+            else if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)==0) {
+                while(1){ //if key1 is equal to op_key we search for a different key1
+                    OpenSearches[scanDesc].curr_pos++;
+                    if(key_num==curr_pos) {//go to the next block
+                        CHK_BF_ERR(BF_UnpinBlock(block));
+                        OpenSearches[scanDesc].curr_pos=0;          //new block so our position is 0
+                        OpenSearches[scanDesc].curr_block=pointer;  //our curr_block now is the pointer of the prwvious block
+                        CHK_BF_ERR(BF_GetBlock(fd,pointer,block)); //get new block
+                        data=BF_Block_GetData(block);
+                        memcpy(&pointer,data + id_sz + key_num_sz , pointer_sz); //pointer of new block
+                    }
+                    memcpy(key1,data + id_sz + key_num_sz + pointer_sz + curr_pos*key_sz1 + curr_pos*key_sz2 ,key_sz1 );
+                    if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)==0)
+                        continue;
+                    else {
+                        memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+                        OpenSearches[scanDesc].curr_pos++;
+                        break;
+                    }
+                }
+            }
+
             break;
 
         case LESS_THAN :
+            if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)>=0) {  //stop if GREATER_THAN_OR_EQUAL
+                AM_errno = AME_EOF;
+                return NULL;
+            }
+            else{
+                memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+                OpenSearches[scanDesc].curr_pos++;
+            }
             break;
 
         case GREATER_THAN :
+            memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+            OpenSearches[scanDesc].curr_pos++;
             break;
 
         case LESS_THAN_OR_EQUAL :
+            if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)>0) {   //stop if GREATER_THAN
+                AM_errno = AME_EOF;
+                return NULL;
+            }
+            else{
+                memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+                OpenSearches[scanDesc].curr_pos++;
+            }
             break;
 
         case GREATER_THAN_OR_EQUAL :
+            memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+            OpenSearches[scanDesc].curr_pos++;
             break;
-
-        default :
     }
 
-    memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
 
-
-    return (void*)key2;
+    OpenSearches[scanDesc].info=(void*)malloc(OpenIndexes[OpenSearches[scanDesc].fileDesc].attrLength2);
+    OpenSearches[scanDesc].info=(void*)key2;
+    free(key1);
+    return OpenSearches[scanDesc].info;
 }
 
 

@@ -10,7 +10,7 @@ FileMeta filemeta_init(FileMeta fm) {
   fm.attrType2 = '\0';
   fm.attrLength2 = -1;
   fm.rootBlockNum = -1;
-  fm.dataBlockNum = -1;
+  fm.dataBlockNum = -1; 
 
   return fm;
 }
@@ -35,11 +35,6 @@ SearchData searchdata_add_info(SearchData sd,int fileDesc,int op,int block,int p
   return sd;
 }
 
-void searchdata_change_info(SearchData* sd,int block,int pos,void* info){
-  sd->curr_block=block;
-  sd->curr_pos=pos;
-  sd->info=info;
-}
 
 void searchdata_free(OpenSearches* sd) {
   sd->fileDesc=-1;
