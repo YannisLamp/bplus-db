@@ -222,8 +222,19 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     AM_errno = AME_INDEX_FILE_NOT_OPEN;
     return AME_INDEX_FILE_NOT_OPEN;
   }
-  int ret_value = AME_OK;
 
+  // Check if there is an ongoing search in the same file
+  for(int i = 0; i < MAXSCANS; i++) {
+    if (OpenSearches[i].fileDesc != -1) {
+      if (strcmp(OpenIndexes[OpenSearches[i].fileDesc].fileName,
+                 OpenIndexes[fileDesc].filename == 0) {
+        AM_errno = CANNOT_INSERT_SEARCH_OPEN;
+        return CANNOT_INSERT_SEARCH_OPEN;
+      }
+    }
+  }
+
+  int ret_value = AME_OK;
   // Check if a B+ tree root exists
   // If not, initialize B+ index tree with the first record
   // (create tree root and the first data block)

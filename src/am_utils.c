@@ -35,7 +35,6 @@ int init_bptree(int fileDesc, void *value1, void *value2) {
   int fd = OpenIndexes[fileDesc].fd;
   // Get block data
   CHK_BF_ERR(BF_GetBlock(fd, block_id, block));
-  char* block_data = BF_Block_GetData(block);
 
   // Initialize data block with id, record number (1), next data block id (-1),
   // and finally the record (value1, value2)
@@ -150,7 +149,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   int fd = OpenIndexes[fileDesc].fd;
   // Get block data
   CHK_BF_ERR(BF_GetBlock(fd, block_id, block));
-  char* block_data_strt = BF_Block_GetData(block);
+  char* block_data = BF_Block_GetData(block);
   // Allocate space for a key value
   void* temp_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
   // First check if current block is an index block or a data block
@@ -158,35 +157,30 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   // (in order to find the right data block for the values to be inserted into)
   if (strcmp(block_data_strt, ".ib") == 0) {
     // Get number of keys in block
-    char* block_data = block_data_strt + 4;
+    block_data += 4;
     int key_num = 0;
     memcpy(&key_num, block_data, sizeof(int));
+    block_data += sizeof(int);
     // Get first key
-    block_data += 2*sizeof(int);
-    memcpy(temp_key, block_data, OpenIndexes[fileDesc].attrLength1);
-
+    memcpy(temp_key, block_data + sizeof(int), OpenIndexes[fileDesc].attrLength1);
+    int key_plus_ptr_size = sizeof(int) + OpenIndexes[fileDesc].attrLength1;
     // Then try to find next block
-    while(key_num < 1 &&
+    int found_block_pos = 0;
+    while(found_block_pos < key_num + 1 &&
           v_cmp(OpenIndexes[fileDesc].attrType1, value1, temp_key) > -1) {
-      // Move on to the next key
-      block_data += OpenIndexes[fileDesc].attrLength1 + sizeof(int);
-      key_num--;
-      memcpy(temp_key, block_data, OpenIndexes[fileDesc].attrLength1);
+      // Get next key after block
+      found_block_pos++;
+      memcpy(temp_key, block_data + found_block_pos*key_plus_ptr_size + sizeof(int),
+             OpenIndexes[fileDesc].attrLength1);
     }
-    // Only if it is the last key go to right pointer
-    if (v_cmp(OpenIndexes[fileDesc].attrType1, value1, temp_key) > -1)
-      block_data += OpenIndexes[fileDesc].attrLength1;
-    // Else normally go to left pointer
-    else
-      block_data -= sizeof(int);
-
+    // Get block id
     int found_block_id = 0;
-    memcpy(&found_block_id, block_data, sizeof(int));
+    memcpy(&found_block_id, block_data + found_block_pos*key_plus_ptr_size,
+            sizeof(int));
 
     // Before the recursive call
-    block_data_strt = NULL;
     block_data = NULL;
-    CHK_BF_ERR(BF_UnpinBlock(root_block));
+    CHK_BF_ERR(BF_UnpinBlock(block));
     // Then call the same function with found_block_num as input block number
     RecTravOut possible_block = rec_trav_insert(fileDesc, found_block_id, value1, value2);
 
@@ -195,21 +189,84 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     // pointer to it should be added in this block
     if (possible_block.nblock_id != -1) {
       CHK_BF_ERR(BF_GetBlock(fd, block_id, block));
-      block_data_strt = BF_Block_GetData(block);
-      block_data = block_data_strt + 4;
+      block_data = BF_Block_GetData(block) + 4 + sizeof(int);
 
-      // Get number of keys
-      int key_num = 0;
-      memcpy(&key_num, block_data, sizeof(int));
       // Calculate used space and check if a new key fits in the block
-      int key_plus_ptr_size = sizeof(int) + OpenIndexes[fileDesc].attrLength1;
       int used_space = 4 + 2*sizeof(int) + key_num*key_plus_ptr_size;
-      // If it fits, then insert it
+      // If it fits, then insert it after the found_key_pos
       if (used_space + key_plus_ptr_size <= BF_BLOCK_SIZE) {
+        // If the key to be inserted will go last, only insert it
+        if (found_block_pos == key_num) {
+          // Insert new key and pointer
+          memcpy(block_data + found_block_pos*key_plus_ptr_size + sizeof(int),
+                 possible_block.nblock_strt_key, OpenIndexes[fileDesc].attrLength1);
+          memcpy(block_data + (found_block_pos + 1)*key_plus_ptr_size,
+                 &possible_block.nblock_id, sizeof(int));
+        }
+        // Else save records that come after the new one
+        else {
+          int copy_block_pos = key_num - found_block_pos;
+          char* buffer = malloc(copy_block_pos * key_plus_ptr_size);
+          memcpy(buffer, block_data + found_block_pos*key_plus_ptr_size + sizeof(int),
+                 copy_block_pos * key_plus_ptr_size);
 
+          // Insert new key and pointer
+          memcpy(block_data + found_block_pos*key_plus_ptr_size + sizeof(int),
+                 possible_block.nblock_strt_key, OpenIndexes[fileDesc].attrLength1);
+          memcpy(block_data + (found_block_pos + 1)*key_plus_ptr_size,
+                 &possible_block.nblock_id, sizeof(int));
+
+          // Move all records that come after that 1 position to the right
+          memcpy(block_data + (found_block_pos + 1)*key_plus_ptr_size + sizeof(int),
+                 buffer, copy_block_pos * key_plus_ptr_size);
+          // Free buffer
+          free(buffer);
+        }
+        // Increment the block's second value (number of keys in it) by one
+        memcpy(block_data - sizeof(int), key_num + 1, sizeof(int));
+
+        // Set dirty and unpin block
+        BF_Block_SetDirty(block);
+        CHK_BF_ERR(BF_UnpinBlock(block));
+
+        // Free possible_block's nblock_strt_key, make nblock_id -1 and return it
+        // so that we know that there are no blocks to insert at the upper level
+        free(possible_block.nblock_strt_key);
+        possible_block.nblock_id = -1;
+        return possible_block;
       }
       // Else, create a new index block and distribute the keys between them
       else {
+        all_key_num = key_num + 1;
+        // Find out which key to send to the upper level
+        // The right block will have more keys if the key number is even
+        send_key_pos = all_key_num/2 + 1;
+
+        // Update the key number of the original index block
+        memcpy(block_data - sizeof(int), send_key_pos, sizeof(int));
+
+        // Create new index block
+        BF_Block *new_block;
+        BF_Block_Init(&new_block);
+        CHK_BF_ERR(BF_AllocateBlock(fd, new_block));
+        // Initialize index block with id
+        new_block_data = BF_Block_GetData(new_block);
+        char rid[4] = ".ib"; // It is an "index block"
+        memcpy(new_block_data, rid, 4);
+        new_block_data += 4;
+        // Initialize index block with key number
+        int new_key_num = 0;
+        if (all_key_num % 2 == 1)
+           new_key_num = send_key_pos;
+        else
+          new_key_num = send_key_pos - 1
+        memcpy(new_block_data, new_key_num, sizeof(int));
+        new_block_data += sizeof(int);
+
+        // Copy keys and block numbers to the new block
+        for (i = send_key_pos; i < all_key_num; i++) {
+          
+        }
 
       }
     // Else just return the same output (possible_block with nblock_id == -1)
@@ -221,10 +278,10 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   // values should be inserted (end recursion)
   else if (strcmp(block_data_strt, ".db") == 0) {
     // Get number of records (consist of 2 attributes) in block
-    char* block_data = block_data_strt + 4;
+    char* block_data += 4;
     int record_num = 0;
     memcpy(&record_num, block_data, sizeof(int));
-
+    char* block_data += 2*sizeof(int);
     // Check if the new record fits in the block
     int record_size = OpenIndexes[fileDesc].attrLength1 +
                       OpenIndexes[fileDesc].attrLength2;
@@ -232,34 +289,46 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     // If it fits, then insert it
     if (used_space + record_size <= BF_BLOCK_SIZE) {
       // Get first record key value
-      block_data += 2*sizeof(int);
-      memcpy(temp_key, block_data, OpenIndexes[fileDesc].attrLength1);
+      memcpy(temp_key, block_data + sizeof(int), OpenIndexes[fileDesc].attrLength1);
       // Find out where its position should be
       int move_pos = 0;
       while (move_pos < record_num &&
             v_cmp(OpenIndexes[fileDesc].attrType1, value1, temp_key) >= 0) {
         move_pos++;
-        block_data += record_size;
         // Move on to the next key
-        memcpy(temp_key, block_data, OpenIndexes[fileDesc].attrLength1);
+        memcpy(temp_key, block_data + move_pos*record_size,
+               OpenIndexes[fileDesc].attrLength1);
       }
-      // DEN KSERW AN THA THELEI IF EDW GIA ISO TOU REC_NUM
-      int copy_rec_num = record_num - move_pos;
-      char* buffer = malloc(copy_rec_num * record_size);
-      memcpy(buffer, block_data, copy_rec_num * record_size);
-      // Insert new record
-      memcpy(block_data, value1, OpenIndexes[fileDesc].attrLength1);
-      block_data += OpenIndexes[fileDesc].attrLength1;
-      memcpy(block_data, value2, OpenIndexes[fileDesc].attrLength2);
-      block_data += OpenIndexes[fileDesc].attrLength2;
-      // Move all records that come after that 1 position to the right
-      memcpy(block_data, buffer, copy_rec_num * record_size);
+      // If the record to be inserted will go last, only insert it
+      if (move_pos == record_num) {
+        memcpy(block_data + move_pos*record_size,
+               value1, OpenIndexes[fileDesc].attrLength1);
+        memcpy(block_data + move_pos*record_size + OpenIndexes[fileDesc].attrLength1,
+               value2, OpenIndexes[fileDesc].attrLength2);
+      }
+      // Else move the records after it by one position
+      else {
+        // Save records that come after the new one
+        int copy_rec_num = record_num - move_pos;
+        char* buffer = malloc(copy_rec_num * record_size);
+        memcpy(buffer, block_data + move_pos*record_size, copy_rec_num*record_size);
 
-      // Free buffer
-      free(buffer);
+        // Insert new record
+        memcpy(block_data + move_pos*record_size,
+               value1, OpenIndexes[fileDesc].attrLength1);
+        memcpy(block_data + move_pos*record_size + OpenIndexes[fileDesc].attrLength1,
+               value2, OpenIndexes[fileDesc].attrLength2);
+
+        // Move all records that come after that 1 position to the right
+        memcpy(block_data + (move_pos + 1)*record_size,
+               buffer, copy_rec_num * record_size);
+
+        // Free buffer
+        free(buffer);
+      }
 
       // Increment the block's second value (number of records in it) by one
-      block_data = block_data_strt + 4;
+      block_data -= 2*sizeof(int);
       int new_record_num = 0;
       memcpy(&new_record_num, block_data, sizeof(int));
       new_record_num++;
@@ -275,7 +344,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     else {
       // First copy all records to a buffer that has enough space for one more
       char* buffer_strt = malloc((record_num + 1) * record_size);
-      char* buffer
+      char* buffer = buffer_strt;
       block_data += 2*sizeof(int);
       memcpy(buffer, block_data, (record_num + 1) * record_size);
       // Find out where the new record's position should be in the buffer
@@ -287,20 +356,47 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         block_data += record_size;
         memcpy(temp_key, block_data, OpenIndexes[fileDesc].attrLength1);
       }
-      // DEN KSERW AN THA THELEI IF EDW GIA ISO TOU REC_NUM
-      int copy_rec_num = record_num - move_pos;
-      char* buffer = malloc(copy_rec_num * record_size);
-      memcpy(buffer, block_data, copy_rec_num * record_size);
-      // Insert new record
-      memcpy(block_data, value1, OpenIndexes[fileDesc].attrLength1);
-      block_data += OpenIndexes[fileDesc].attrLength1;
-      memcpy(block_data, value2, OpenIndexes[fileDesc].attrLength2);
-      block_data += OpenIndexes[fileDesc].attrLength2;
-      // Move all records that come after that 1 position to the right
-      memcpy(block_data, buffer, copy_rec_num * record_size);
+      // If the record to be inserted will go last, only insert it
+      if (move_pos == record_num) {
+
+      }
+      else {
+        int copy_rec_num = record_num - move_pos;
+        char* buffer = malloc(copy_rec_num * record_size);
+        memcpy(buffer, block_data, copy_rec_num * record_size);
+        // Insert new record
+        memcpy(block_data, value1, OpenIndexes[fileDesc].attrLength1);
+        block_data += OpenIndexes[fileDesc].attrLength1;
+        memcpy(block_data, value2, OpenIndexes[fileDesc].attrLength2);
+        block_data += OpenIndexes[fileDesc].attrLength2;
+        // Move all records that come after that 1 position to the right
+        memcpy(block_data, buffer, copy_rec_num * record_size);
+      }
+
+      // Create a second data block
+      BF_Block *new_block;
+      BF_Block_Init(&new_block);
+      CHK_BF_ERR(BF_AllocateBlock(fd, new_block));
+      char* new_block_data = BF_Block_GetData(new_block);
+      int new_block_id = 0;
+      CHK_BF_ERR(BF_GetBlockCounter(fd, &new_block_id));
+      new_block_id--;
+
+
+
+
 
       // Free buffer
       free(buffer_strt);
+      // Dirty and unpin blocks
+      // Original data block
+      BF_Block_SetDirty(block);
+      CHK_BF_ERR(BF_UnpinBlock(block));
+      // New data block
+      BF_Block_SetDirty(new_block);
+      CHK_BF_ERR(BF_UnpinBlock(new_block));
+      // Destroy new block
+      BF_Block_Destroy(&new_block);
     }
   }
 
