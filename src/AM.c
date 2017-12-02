@@ -18,6 +18,8 @@
     }                                \
   }
 
+extern FileMeta[MAXOPENFILES] OpenIndexes;
+extern SearchData[MAXSCANS] OpenSearches;
 
 int AM_errno = AME_OK;
 
