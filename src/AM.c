@@ -19,8 +19,8 @@
   }
 
 
-
 int AM_errno = AME_OK;
+
 
 void AM_Init() {
   // Initialize BF part
@@ -274,9 +274,10 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     }
     // Else call recursive function rec_trav_insert for the tree root
     else {
-
-      RecTravOut possible_block = rec_trav_insert(fileDesc, OpenIndexes[fileDesc].rootBlockNum,
-                                                  value1, value2);
+      RecTravOut possible_block = rec_trav_insert(fileDesc,
+                                              OpenIndexes[fileDesc].rootBlockNum,
+                                              value1,
+                                              value2);
       // If the returned struct's possible_block.nblock_id is not -1, that
       // means that a new block has been created in the same level a the root,
       // so a new root should be created to point to both this and the new block
@@ -302,7 +303,8 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
         memcpy(new_root_data, &temp_i, sizeof(int));
         new_root_data += sizeof(int);
         // Finally save key, then the new data block id in the new root
-        memcpy(new_root_data, possible_block.nblock_strt_key, OpenIndexes[fileDesc].attrLength1);
+        memcpy(new_root_data, possible_block.nblock_strt_key,
+               OpenIndexes[fileDesc].attrLength1);
         new_root_data += OpenIndexes[fileDesc].attrLength1;
         memcpy(new_root_data, &possible_block.nblock_id, sizeof(int));
 
@@ -317,15 +319,12 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 
         // Save the new root id in the global struct OpenIndexes
         OpenIndexes[fileDesc].rootBlockNum = new_root_id;
-
       }
     }
-
-
     free(curr_key);
     BF_Block_Destroy(&root_block);
   }
-  return AME_OK;
+  return ret_value;
 }
 
 
