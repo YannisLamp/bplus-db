@@ -53,8 +53,8 @@ int init_bptree(int fileDesc, void *value1, void *value2) {
   block_data += sizeof(int);
   // Copy input values
   memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
-  block_data += OpenIndexes[fileDesc].attrLength1;
-  memcpy(block_data, &value2, OpenIndexes[fileDesc].attrLength2);
+  memcpy(block_data + OpenIndexes[fileDesc].attrLength1,
+         &value2, OpenIndexes[fileDesc].attrLength2);
 
   // Get block id of the data block and save it in OpenIndexes
   int block_id = 0;
@@ -84,8 +84,8 @@ int init_bptree(int fileDesc, void *value1, void *value2) {
   block_data += sizeof(int);
   // Finally save key, then data block number in the root
   memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
-  block_data += OpenIndexes[fileDesc].attrLength1;
-  memcpy(block_data, &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
+  memcpy(block_data + OpenIndexes[fileDesc].attrLength1,
+        &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
 
   // Get block id of the root and save it in OpenIndexes
   CHK_BF_ERR(BF_GetBlockCounter(fd, &block_id));
@@ -125,8 +125,8 @@ int create_leftmost_block(int fileDesc, void *value1, void *value2) {
   block_data += sizeof(int);
   // Copy input values
   memcpy(block_data, &value1, OpenIndexes[fileDesc].attrLength1);
-  block_data += OpenIndexes[fileDesc].attrLength1;
-  memcpy(block_data, &value2, OpenIndexes[fileDesc].attrLength2);
+  memcpy(block_data + OpenIndexes[fileDesc].attrLength1,
+         &value2, OpenIndexes[fileDesc].attrLength2);
 
   // Get block id of the data block and save it in OpenIndexes
   int block_id = 0;
