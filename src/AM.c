@@ -640,7 +640,22 @@ int AM_CloseIndexScan(int scanDesc) {
 
 
 void AM_PrintError(char *errString) {
-  // APLA PRINT TA FTIAGMENA STO .h
+  printf("errString = %s\n\n",errString);
+  switch(AM_errno) {
+      case AME_OK : printf("AME_OK\n"); break;
+      case AME_EOF : printf("AME_EOF\n"); break;
+      case AME_BF_CALL_ERROR : printf("AME_BF_CALL_ERROR\n"); break;
+      case AME_CREATE_INPUT_ERROR : printf("AME_CREATE_INPUT_ERROR\n"); break;
+      case AME_NO_SPACE_FOR_INDEX : printf("AME_NO_SPACE_FOR_INDEX\n"); break;
+      case AME_NOT_INDEX_FILE : printf("AME_NOT_INDEX_FILE\n"); break;
+      case AME_CANNOT_DESTROY_INDEX_OPEN : printf("AME_CANNOT_DESTROY_INDEX_OPEN\n"); break;
+      case AME_INDEX_FILE_NOT_OPEN : printf("AME_INDEX_FILE_NOT_OPEN\n"); break;
+      case AME_ROOT_NOT_EXIST : printf("AME_ROOT_NOT_EXIST\n"); break;
+      case AME_INVALID_OP : printf("AME_INVALID_OP\n"); break;
+      case AME_NO_SPACE_FOR_SEARCH : printf("AME_NO_SPACE_FOR_SEARCH\n"); break;
+      case AME_CANNOT_DESTROY_SEARCH_OPEN : printf("AME_CANNOT_DESTROY_SEARCH_OPEN\n"); break;
+      case AMEAME_KEY_NOT_EXIST_OK : printf("AME_KEY_NOT_EXIST\n"); break;
+      case AME_END_OF_FILE : printf("AME_END_OF_FILE\n"); break;
 }
 
 void AM_Close() {
