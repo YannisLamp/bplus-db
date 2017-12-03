@@ -492,6 +492,9 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
                     if(i==0 && ipointer==-1) {  //there is a chance that the first pointer is -1
                         OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,OpenIndexes[fileDesc].dataBlockNum,-2,value);//add it to OpenSearches
                         AM_errno = AME_KEY_NOT_EXIST; //if thats the case the key does not exist in the tree
+                        free(id);
+                        free(key1);
+                        free(key2);
                         return scanDesc;
                     }
 
@@ -537,6 +540,9 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
         else if(i==key_number){//for finished without finding anything so key does not exist
             OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,OpenIndexes[fileDesc].dataBlockNum,-2,value);//add it to OpenSearches (-2 means that null will be rwutnrd at find next entry)
             AM_errno = AME_KEY_NOT_EXIST;
+            free(id);
+            free(key1);
+            free(key2);
             return scanDesc;
          }
          CHK_BF_ERR(BF_UnpinBlock(block));
@@ -549,9 +555,9 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
   }
   else{
-      free(id);
-      free(key1);
-      free(key2);
+    free(id);
+    free(key1);
+    free(key2);
       AM_errno = AME_INVALID_OP;
       return AME_INVALID_OP;
   }
@@ -664,6 +670,8 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
         case LESS_THAN :
             if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)>=0) {  //stop if GREATER_THAN_OR_EQUAL
                 AM_errno = AME_EOF;
+                free(key1);
+                free(key2);
                 return NULL;
             }
             else{
@@ -680,6 +688,8 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
         case LESS_THAN_OR_EQUAL :
             if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)>0) {   //stop if GREATER_THAN
                 AM_errno = AME_EOF;
+                free(key1);
+                free(key2);
                 return NULL;
             }
             else{
