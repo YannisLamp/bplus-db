@@ -499,7 +499,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         first_right_rec_pos = all_rec_num/2;
       // For the right block
       memcpy(temp_key,
-             buffer + (first_right_rec_pos - 1)*record_size,
+             buffer + first_right_rec_pos*record_size,
              OpenIndexes[fileDesc].attrLength1);
       // For the left block
       memcpy(temp_key2,
@@ -563,12 +563,12 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       // Copy records from buffer
       int new_block_i = 0;
       for (int i = 0; i < all_rec_num; i++) {
-        if (i < first_right_rec_pos) {
+        if (i < left_rec_num) {
           memcpy(block_data + i*record_size,
                  buffer + i*record_size,
                  record_size);
         }
-        else if (i >= first_right_rec_pos) {
+        else if (i >= left_rec_num) {
           memcpy(new_block_data + new_block_i*record_size,
                  buffer + i*record_size,
                  record_size);
