@@ -425,30 +425,34 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 
 int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe location in OpenIndexes
 
-  // Check if file is open in OpenIndexes[fileDesc]
-  int fd = OpenIndexes[fileDesc].fd;
-  int scanDesc;
   int i;
+  // Check if file is open in OpenIndexes[fileDesc]
+
+  int fd = OpenIndexes[fileDesc].fd;
   if (fd == -1) {
     AM_errno = AME_INDEX_FILE_NOT_OPEN;
     return AME_INDEX_FILE_NOT_OPEN;
   }
+
   //Check if there is a root in the file
   if (OpenIndexes[fileDesc].rootBlockNum == -1) {
     AM_errno = AME_ROOT_NOT_EXIST;
     return AME_ROOT_NOT_EXIST;
   }
 
+
+  int scanDesc;
   for(scanDesc = 0; scanDesc < MAXSCANS; scanDesc++) {//search for location in OpenSearches
     OpenSearches[scanDesc].fileDesc==-1;
     break;
   }
-
   //Check if there is location in OpenSearches
   if(scanDesc==MAXSCANS){
     AM_errno = AME_NO_SPACE_FOR_SEARCH;
     return AME_NO_SPACE_FOR_SEARCH;
   }
+  //if not we found a location
+
 
 //////////////sizes///////////////////
   int id_sz=4;
@@ -458,12 +462,13 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
   int key_num_sz=sizeof(int);
 /////////////////////////////////////
 
+
   BF_Block *block;
   BF_Block_Init(&block);
   char* data;
 
   char* id=(char*)malloc(id_sz);    //id of the block
-  int key_number;                   //how many numbers
+  int key_number;                   //how many keys
   int ipointer;                     //the pointer for next indexblock
   char* key1=(char*)malloc(key_sz1);//key1 value
   char* key2=(char*)malloc(key_sz2);//key2 value
@@ -476,6 +481,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
       block_num=OpenIndexes[fileDesc].rootBlockNum;
       while (1){
         CHK_BF_ERR(BF_GetBlock(fd,block_num,block));  //get block with number block_num
+
         data=BF_Block_GetData(block);                 //get the data
         memcpy(id,data,id_sz);
         if(v_cmp('c',id,".ib")==0){                   // indexblock
@@ -487,7 +493,6 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
                 memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz1,key_sz1);
 
                 if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)<0){ //go to the left pointer
-
                     if(i==0 && ipointer==-1) {  //there is a chance that the first pointer is -1
                         AM_errno = AME_KEY_NOT_EXIST; //if thats the case the key does not exist in the tree
                         return AME_KEY_NOT_EXIST;
