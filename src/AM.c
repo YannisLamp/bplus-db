@@ -25,7 +25,7 @@
       if (code != BF_OK) {             \
         BF_PrintError(code);           \
   			AM_errno = AME_BF_CALL_ERROR;  \
-        return NULL;      \
+        return NULL;                   \
       }                                \
     }
 
