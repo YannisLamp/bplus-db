@@ -341,17 +341,19 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
   // Check if file is open in OpenIndexes[fileDesc]
   int fd = OpenIndexes[fileDesc].fd;
+  int scanDesc;
+  int i;
   if (fd == -1) {
     AM_errno = AME_INDEX_FILE_NOT_OPEN;
     return AME_INDEX_FILE_NOT_OPEN;
   }
   //Check if there is a root in the file
   if (OpenIndexes[fileDesc].rootBlockNum = -1) {
-    AM_errno = ROOT_NOT_EXIST;
+    AM_errno = AME_ROOT_NOT_EXIST;
     return AME_ROOT_NOT_EXIST;
   }
 
-  for(int scanDesc = 0; scanDesc < MAXSCANS; i++) {//search for location in OpenSearches
+  for(scanDesc = 0; scanDesc < MAXSCANS; scanDesc++) {//search for location in OpenSearches
     OpenSearches[scanDesc].fileDesc==-1;
     break;
   }
@@ -372,7 +374,6 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
   BF_Block *block;
   BF_Block_Init(&block);
-  int fd=OpenIndexes[fileDesc].fd;
   char* data;
 
   char* id=(char*)malloc(id_sz);    //id of the block
@@ -424,7 +425,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
         memcpy(&key_number,data+id_sz,key_num_sz);//we passed the identification
         memcpy(&dpointer,data+id_sz+key_num_sz,pointer_sz);
 
-        for(int i=0;i<key_number){ //find key1 inside the db block
+        for(i=0;i<key_number){ //find key1 inside the db block
           memcpy(key1,data + id_sz + key_num_sz + pointer_sz + i*key_sz1 +i*key_sz2,key_sz1);
           //no reason to make different if statements
           //we did only because one if statement would be too large
@@ -474,6 +475,8 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     int key_sz1=OpenIndexes[fileDesc].attrLength1;
     int key_sz2=OpenIndexes[fileDesc].attrLength2;
     int pointer_sz=sizeof(int);
+    int key_num_sz=sizeof(int);
+
 
     BF_Block *block;
     BF_Block_Init(&block);
@@ -597,7 +600,7 @@ int AM_CloseIndexScan(int scanDesc) {
     return AME_CANNOT_DESTROY_SEARCH_OPEN;
   }
   else //if it is free it
-      OpenSearches[scanDesc] = searchdata_free(OpenSearches[scanDesc]);
+    searchdata_free(&OpenSearches[scanDesc]);
   return AME_OK;
 }
 
@@ -617,8 +620,9 @@ void AM_PrintError(char *errString) {
       case AME_INVALID_OP : printf("AME_INVALID_OP\n"); break;
       case AME_NO_SPACE_FOR_SEARCH : printf("AME_NO_SPACE_FOR_SEARCH\n"); break;
       case AME_CANNOT_DESTROY_SEARCH_OPEN : printf("AME_CANNOT_DESTROY_SEARCH_OPEN\n"); break;
-      case AMEAME_KEY_NOT_EXIST_OK : printf("AME_KEY_NOT_EXIST\n"); break;
+      case AME_KEY_NOT_EXIST : printf("AME_KEY_NOT_EXIST\n"); break;
       case AME_END_OF_FILE : printf("AME_END_OF_FILE\n"); break;
+    }
 }
 
 void AM_Close() {
