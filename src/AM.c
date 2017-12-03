@@ -103,7 +103,6 @@ int AM_CreateIndex(char *fileName,
   char* block_data = BF_Block_GetData(block);
 	// Index file id (.if) (space for \0 at the end for strcmp)
   char id[4] = ".if";
-  // TSEKAREEEEE AUTOOOOO +4 gt IPARXEI KAI TO \0 STO TELOS
   memcpy(block_data, id, 4);
 	block_data += 4;
 	// Then save the types and lengths of the attributes
@@ -137,7 +136,8 @@ int AM_DestroyIndex(char *fileName) {
 	// Check if index file is open
   int i = 0;
   while(i < MAXOPENFILES) {
-    if (strcmp(OpenIndexes[i].fileName, fileName) == 0) {
+    if (OpenIndexes[i].fd != -1 &&
+        strcmp(OpenIndexes[i].fileName, fileName) == 0) {
       AM_errno = AME_CANNOT_DESTROY_INDEX_OPEN;
       return AME_CANNOT_DESTROY_INDEX_OPEN;
     }
@@ -145,6 +145,7 @@ int AM_DestroyIndex(char *fileName) {
   }
   // If not, delete file
   // MPOREI NA THELEI ./ (GIA DIR)
+  printf("READU TO DESTROY\n" );
   remove(fileName);
   return AME_OK;
 }
@@ -162,7 +163,7 @@ int AM_OpenIndex (char *fileName) {
   }
 
   // Open file
-  int fd = 0;
+  int fd;
   CHK_BF_ERR(BF_OpenFile(fileName, &fd));
   // Check if there is a block in the file
   int block_num;
@@ -183,6 +184,7 @@ int AM_OpenIndex (char *fileName) {
     return AME_NOT_INDEX_FILE;
   }
 
+  block_data += 4;
   // Save file decriptor and filename
   OpenIndexes[save_index].fd = fd;
   // MPOREI LATHOS
@@ -206,7 +208,7 @@ int AM_OpenIndex (char *fileName) {
   CHK_BF_ERR(BF_UnpinBlock(block));
   BF_Block_Destroy(&block);
 
-	return AME_OK;
+	return save_index;
 }
 
 
@@ -249,7 +251,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
   // Check if a B+ tree root exists
   // If not, initialize B+ index tree with the first record
   // (create tree root and the first data block)
-  if (OpenIndexes[fileDesc].rootBlockNum = -1) {
+  if (OpenIndexes[fileDesc].rootBlockNum == -1) {
     ret_value = init_bptree(fileDesc, value1, value2);
   }
   // Else if tree exists, insert record (value1, value2), according to
@@ -261,17 +263,19 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     // First get tree root data
     CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, block));
     char* root_data = BF_Block_GetData(block);
+    root_data += 4;
     // Get first block id
     root_data += sizeof(int);
     int first_block_id = 0;
     memcpy(&first_block_id, root_data, sizeof(int));
     // Get first key
     root_data += sizeof(int);
-    void* curr_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
+    void* curr_key = malloc(OpenIndexes[fileDesc].attrLength1);
     memcpy(curr_key, root_data, OpenIndexes[fileDesc].attrLength1);
     // Unpin root block
     root_data = NULL;
     CHK_BF_ERR(BF_UnpinBlock(block));
+    printf("%d\n", OpenIndexes[fileDesc].attrLength1);
 
     // Then, only if input key (value1) is less than the first key of the
     // root block, and the first pointer of the root does not point to a
@@ -280,6 +284,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
         v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) == -1) {
       // Call create_leftmost_block to create the new block, insert the new
       // record in it and change the OpenIndexes[fileDesc]
+      printf("ADDING\n" );
       ret_value = create_leftmost_block(fileDesc, value1, value2);
 
       // Then change the root block so that it points to it
@@ -296,6 +301,9 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     }
     // Else call recursive function rec_trav_insert for the tree root
     else {
+      printf("CALLING REC\n" );
+      printf("%c\n", OpenIndexes[fileDesc].attrType1);
+      printf("%d >= \n", *(int*)value1);
       RecTravOut possible_block = rec_trav_insert(fileDesc,
                                               OpenIndexes[fileDesc].rootBlockNum,
                                               value1,
