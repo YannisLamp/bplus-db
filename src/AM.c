@@ -537,7 +537,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
 void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
 
-    if(OpenSearches[scanDesc].op==-2){
+    if(OpenSearches[scanDesc].curr_pos==-2){
       AM_errno = AME_EOF;
       return NULL;
     }
