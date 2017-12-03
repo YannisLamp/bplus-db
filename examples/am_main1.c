@@ -28,18 +28,22 @@ void insertEntries(int eNentry, int eAentry, int eSentry, int eDentry,
 		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", empName);
 		AM_PrintError(errStr);
 	}
+	printf("INSERT 1 NAME\n" );
 	if (AM_InsertEntry(eAentry, (void *) &eage, ename) != AME_OK) {
 		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", empAge);
 		AM_PrintError(errStr);
 	}
+	printf("INSERT 2 AGE\n" );
 	if (AM_InsertEntry(eSentry, (void *) &esal, ename) != AME_OK) {
 		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", empSal);
 		AM_PrintError(errStr);
 	}
+	printf("INSERT 3 SALARY\n" );
 	if (AM_InsertEntry(eDentry, (void *) edname, &esal) != AME_OK) {
 		sprintf(errStr, "Error in AM_InsertEntry called on %s \n", empDname);
 		AM_PrintError(errStr);
 	}
+	printf("INSERT 4 EDNAME\n" );
 
 }
 
@@ -616,7 +620,6 @@ int main() {
 	strcpy(edname, "KREATA");
 	insertEntries(eNentry, eAentry, eSentry, eDentry, ename, eage, esal,
 			edname, ++recordid);
-
 	/* -----------------------------------------------------------------------------*/
 
 	strcpy(ename, "MANWLIKIDHS ZHSHS");
@@ -805,7 +808,6 @@ int main() {
 	strcpy(edname, "PSARIA");
 	insertEntries(eNentry, eAentry, eSentry, eDentry, ename, eage, esal,
 			edname, ++recordid);
-
 	/* -----------------------------------------------------------------------------*/
 
 	strcpy(ename, "LAMPRINOYDHS NIKOLAOS");
@@ -859,7 +861,6 @@ int main() {
 	strcpy(edname, "FROUTA");
 	insertEntries(eNentry, eAentry, eSentry, eDentry, ename, eage, esal,
 			edname, ++recordid);
-
 	/* -----------------------------------------------------------------------------*/
 
 	strcpy(ename, "XRYSANQAKOPOYLOS DHMHTRIOS");
@@ -906,7 +907,6 @@ int main() {
 			edname, ++recordid);
 
 	/* -----------------------------------------------------------------------------*/
-
 	strcpy(ename, "GKOYRHS NIKOLAOS");
 	eage = 56;
 	esal = 328.2;
@@ -915,14 +915,13 @@ int main() {
 			edname, ++recordid);
 
 	/* -----------------------------------------------------------------------------*/
-
+print_check(eAentry);
 	strcpy(ename, "KAZAKOS STEFANOS");
 	eage = 41;
 	esal = 376.8;
 	strcpy(edname, "TYRIA");
 	insertEntries(eNentry, eAentry, eSentry, eDentry, ename, eage, esal,
 			edname, ++recordid);
-
 	/* -----------------------------------------------------------------------------*/
 
 	strcpy(ename, "APOSTOLOPOYLOS KWNSTANTINOS");
@@ -942,14 +941,12 @@ int main() {
 			edname, ++recordid);
 
 	/* -----------------------------------------------------------------------------*/
-
 	strcpy(ename, "SOYTSOS IWANNHS");
 	eage = 20;
 	esal = 439.9;
 	strcpy(edname, "KREATA");
 	insertEntries(eNentry, eAentry, eSentry, eDentry, ename, eage, esal,
 			edname, ++recordid);
-
 	/* -----------------------------------------------------------------------------*/
 
 	strcpy(ename, "MATSARIDHS XARALAMPOS");
@@ -976,7 +973,6 @@ int main() {
 	strcpy(edname, "KRASIA");
 	insertEntries(eNentry, eAentry, eSentry, eDentry, ename, eage, esal,
 			edname, ++recordid);
-
 	/* -----------------------------------------------------------------------------*/
 
 	strcpy(ename, "REGKLEITHS STEFANOS");

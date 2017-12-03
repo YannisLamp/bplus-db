@@ -20,8 +20,8 @@ int main()
 	char deptName[40];
 
 	char errStr[200];
-	
-	
+
+
 	strcpy(empName,"EMP-NAME");
 	strcpy(empAge,"EMP-AGE");
 	strcpy(empSal,"EMP-SAL");
@@ -61,8 +61,8 @@ int main()
   	 sprintf(errStr,"Error in AM_DestroyIndex called on %s \n",deptName);
 	   AM_PrintError(errStr);
 	}
-	
+
 	AM_Close();
-	
+
 	return 0;
 }

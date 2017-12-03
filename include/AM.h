@@ -39,6 +39,8 @@ extern int AM_errno;
 
 void AM_Init( void );
 
+// GIA TESTING
+int print_check(int);
 
 int AM_CreateIndex(
   char *fileName, /* όνομα αρχείου */
