@@ -176,7 +176,7 @@ int create_leftmost_block(int fileDesc, void *value1, void *value2) {
 }
 
 RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value2) {
-  printf("REC CALLEED\n" );
+  //printf("REC CALLEED\n" );
   // Function output
   RecTravOut possible_block;
   // Initialize block and get file descriptor
@@ -187,13 +187,13 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   CHK_BF_ERR_RECTRAV(BF_GetBlock(fd, block_id, block));
   char* block_data = BF_Block_GetData(block);
   // Allocate space for a key value
-  void* temp_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
+  void* temp_key = malloc(OpenIndexes[fileDesc].attrLength1);
 
   // First check if current block is an index block or a data block
   // If it is an index block, continue traversal (recursion)
   // (in order to find the right data block for the values to be inserted into)
   if (strcmp(block_data, ".ib") == 0) {
-    printf("IN INDEX\n" );
+    //printf("IN INDEX\n" );
     // Get number of keys in block
     block_data += 4;
     int key_num = 0;
@@ -204,8 +204,8 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     int key_plus_ptr_size = sizeof(int) + OpenIndexes[fileDesc].attrLength1;
     // Then try to find next block
     int found_block_pos = 0;
-    printf("%c\n", OpenIndexes[fileDesc].attrType1);
-    printf("%d >= %d\n", *(int*)value1, *(int*)temp_key);
+    //printf("%c\n", OpenIndexes[fileDesc].attrType1);
+    //printf("%d >= %d\n", *(int*)value1, *(int*)temp_key);
     while(found_block_pos < key_num &&
           v_cmp(OpenIndexes[fileDesc].attrType1, value1, temp_key) > -1) {
       // Get next key after block
@@ -213,19 +213,19 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       memcpy(temp_key, block_data + found_block_pos*key_plus_ptr_size + sizeof(int),
              OpenIndexes[fileDesc].attrLength1);
     }
-    printf("FOUND BLOCK POS %d\n", found_block_pos);
+    //printf("FOUND BLOCK POS %d\n", found_block_pos);
     // Get block id
     int found_block_id = 0;
     memcpy(&found_block_id, block_data + found_block_pos*key_plus_ptr_size,
             sizeof(int));
-    printf("%d\n", found_block_id);
+    //printf("%d\n", found_block_id);
     // Before the recursive call
     block_data = NULL;
     CHK_BF_ERR_RECTRAV(BF_UnpinBlock(block));
     // Then call the same function with found_block_num as input block number
-    printf("RENINSIDEREC\n" );
+    //printf("RENINSIDEREC\n" );
     possible_block = rec_trav_insert(fileDesc, found_block_id, value1, value2);
-    printf("AFTER REC\n" );
+    //printf("AFTER REC\n" );
     // If the returned struct's possible_block.nblock_id is not -1, that
     // means that a new block has been created in a lower level, so a key and a
     // pointer to it should be added in this block
@@ -285,6 +285,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         int send_key_pos = all_key_num/2;
 
         // Update the key number of the original index block
+        // send_key_pos number is also the new key number of the original block
         memcpy(block_data - sizeof(int), &send_key_pos, sizeof(int));
 
         // Create new index block
@@ -302,10 +303,11 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         // Initialize index block with key number
         int new_key_num = 0;
         if (all_key_num % 2 == 1)
-           new_key_num = send_key_pos;
+          // Splits in half
+          new_key_num = send_key_pos;
         else
+          // This block gets less keys
           new_key_num = send_key_pos - 1;
-
         memcpy(new_block_data, &new_key_num, sizeof(int));
         new_block_data += sizeof(int);
 
@@ -313,16 +315,16 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         char* buffer = malloc(all_key_num*key_plus_ptr_size + sizeof(int));
         // Copy first block number
         memcpy(buffer, block_data, sizeof(int));
-        int copied = 0;
         // Copy keys and block numbers to a buffer
         // TSEKARE AUTOOOO LATHOOOOOSS
+        int copied = 0;
         for (int i = 0; i < all_key_num; i++) {
           if (i == found_block_pos) {
             memcpy(buffer + sizeof(int) + i*key_plus_ptr_size,
                    possible_block.nblock_strt_key,
                    OpenIndexes[fileDesc].attrLength1);
             memcpy(buffer + sizeof(int) + i*key_plus_ptr_size + OpenIndexes[fileDesc].attrLength1,
-                   new_block_data,
+                   &possible_block.nblock_id,
                    sizeof(int));
             copied = 1;
           }
@@ -347,11 +349,18 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
                    key_plus_ptr_size);
             new_block_i++;
           }
+          else {
+            // Just copy the first block pointer of the new index block
+            memcpy(new_block_data,
+                   buffer + (send_key_pos + 1)*key_plus_ptr_size,
+                   sizeof(int));
+            // And pass the output key value to the possible_block struct
+            memcpy(possible_block.nblock_strt_key,
+                   buffer + sizeof(int) + send_key_pos*key_plus_ptr_size,
+                   OpenIndexes[fileDesc].attrLength1);
+          }
         }
-        // Pass the output values to the possible_block struct
-        memcpy(possible_block.nblock_strt_key,
-               buffer + sizeof(int) + send_key_pos*key_plus_ptr_size,
-               OpenIndexes[fileDesc].attrLength1);
+        // Pass the output block_id to the possible_block struct
         memcpy(&(possible_block.nblock_id),
                &new_block_id,
                sizeof(int));
@@ -367,13 +376,9 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         CHK_BF_ERR_RECTRAV(BF_UnpinBlock(new_block));
         // Destroy new block
         BF_Block_Destroy(&new_block);
-
-        return possible_block;
       }
     // Else just return the same output (possible_block with nblock_id == -1)
     }
-    else
-      return possible_block;
   }
 
 
@@ -382,7 +387,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   // Else, if it is a data block, that means that this is where the given
   // values should be inserted (end recursion)
   else if (strcmp(block_data, ".db") == 0) {
-    printf("IN DATA\n" );
+    //printf("IN DATA\n" );
     // Get number of records (consist of 2 attributes) in block
     block_data += 4;
     int record_num = 0;
@@ -449,7 +454,6 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     // separated)
     else {
       // First copy all records to a buffer that has enough space for one more
-      block_data += 2*sizeof(int);
       // Find out where the new record's position should be in the buffer
       int move_pos = 0;
       memcpy(temp_key,
@@ -484,7 +488,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         }
       }
       // Allocate space for another key
-      void* temp_key2 = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
+      void* temp_key2 = malloc(OpenIndexes[fileDesc].attrLength1);
       // Check if the last record of the left block and the first record of the
       // new, right block have the same key value
       int first_right_rec_pos = 0;
