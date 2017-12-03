@@ -495,6 +495,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
                         free(id);
                         free(key1);
                         free(key2);
+                        BF_Block_Destroy(&block);
                         return scanDesc;
                     }
 
@@ -543,6 +544,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
             free(id);
             free(key1);
             free(key2);
+            BF_Block_Destroy(&block);
             return scanDesc;
          }
          CHK_BF_ERR(BF_UnpinBlock(block));
@@ -558,6 +560,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     free(id);
     free(key1);
     free(key2);
+    BF_Block_Destroy(&block);
       AM_errno = AME_INVALID_OP;
       return AME_INVALID_OP;
   }
@@ -608,6 +611,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
         AM_errno = AME_EOF;
         free(key1);
         free(key2);
+        BF_Block_Destroy(&block);
         return NULL;
     }
 
@@ -631,6 +635,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
             else{
                 free(key1);
                 free(key2);
+                BF_Block_Destroy(&block);
                 AM_errno = AME_EOF;
                 return NULL;
             }
@@ -672,6 +677,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
                 AM_errno = AME_EOF;
                 free(key1);
                 free(key2);
+                BF_Block_Destroy(&block);
                 return NULL;
             }
             else{
@@ -690,6 +696,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
                 AM_errno = AME_EOF;
                 free(key1);
                 free(key2);
+                BF_Block_Destroy(&block);
                 return NULL;
             }
             else{
