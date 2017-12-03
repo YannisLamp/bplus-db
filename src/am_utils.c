@@ -18,16 +18,15 @@
     }                                \
   }
 
-#define CHK_BF_ERR_RECTRAV(call)             \
-  {                                          \
-    BF_ErrorCode code = call;                \
-    if (code != BF_OK) {                     \
-      BF_PrintError(code);                   \
-			AM_errno = AME_BF_CALL_ERROR;          \
-      RecTravOut error_block;                \
-      error_block.error = AME_BF_CALL_ERROR; \
-      return error_block;                    \
-    }                                        \
+#define CHK_BF_ERR_RECTRAV(call)                \
+  {                                             \
+    BF_ErrorCode code = call;                   \
+    if (code != BF_OK) {                        \
+      BF_PrintError(code);                      \
+			AM_errno = AME_BF_CALL_ERROR;             \
+      possible_block.error = AME_BF_CALL_ERROR; \
+      return possible_block;                    \
+    }                                           \
   }
 
 // Compares variables depending on their type (input v_type)
