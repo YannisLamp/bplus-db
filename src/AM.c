@@ -566,6 +566,11 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
 
 void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
+
+    if(OpenSearches[scanDesc].op==-2){
+      AM_errno = AME_EOF;
+      return NULL;
+    }
     int id_sz=4;
     int fileDesc=OpenSearches[scanDesc].fileDesc;
     int key_sz1=OpenIndexes[fileDesc].attrLength1;
