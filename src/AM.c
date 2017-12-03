@@ -600,6 +600,8 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
 
     if(pointer==-1 && key_num==curr_pos) {//there is no next entry
         AM_errno = AME_EOF;
+        free(key1);
+        free(key2);
         return NULL;
     }
 
@@ -621,6 +623,8 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
                 OpenSearches[scanDesc].curr_pos++;
             }
             else{
+                free(key1);
+                free(key2);
                 AM_errno = AME_EOF;
                 return NULL;
             }
