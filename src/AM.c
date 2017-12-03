@@ -714,21 +714,21 @@ int AM_CloseIndexScan(int scanDesc) {
 void AM_PrintError(char *errString) {
   printf("errString = %s\n\n",errString);
   switch(AM_errno) {
-      case AME_OK : printf("AME_OK\n"); break;
-      case AME_EOF : printf("AME_EOF\n"); break;
-      case AME_BF_CALL_ERROR : printf("AME_BF_CALL_ERROR\n"); break;
-      case AME_CREATE_INPUT_ERROR : printf("AME_CREATE_INPUT_ERROR\n"); break;
-      case AME_NO_SPACE_FOR_INDEX : printf("AME_NO_SPACE_FOR_INDEX\n"); break;
-      case AME_NOT_INDEX_FILE : printf("AME_NOT_INDEX_FILE\n"); break;
-      case AME_CANNOT_DESTROY_INDEX_OPEN : printf("AME_CANNOT_DESTROY_INDEX_OPEN\n"); break;
-      case AME_INDEX_FILE_NOT_OPEN : printf("AME_INDEX_FILE_NOT_OPEN\n"); break;
-      case AME_ROOT_NOT_EXIST : printf("AME_ROOT_NOT_EXIST\n"); break;
-      case AME_INVALID_OP : printf("AME_INVALID_OP\n"); break;
-      case AME_NO_SPACE_FOR_SEARCH : printf("AME_NO_SPACE_FOR_SEARCH\n"); break;
-      case AME_CANNOT_DESTROY_SEARCH_OPEN : printf("AME_CANNOT_DESTROY_SEARCH_OPEN\n"); break;
-      case AME_KEY_NOT_EXIST : printf("AME_KEY_NOT_EXIST\n"); break;
-      case AME_CANNOT_INSERT_SEARCH_OPEN : printf("AME_CANNOT_INSERT_SEARCH_OPEN\n"); break;
-      case AME_CANNOT_CLOSE_SEARCH_OPEN : printf("AME_CANNOT_CLOSE_SEARCH_OPEN\n"); break;
+      case AME_OK : printf("EVERYTHING IS OK\n"); break;
+      case AME_EOF : printf("END OF FILE\n"); break;
+      case AME_BF_CALL_ERROR : printf("ERROR IN BF CALL\n"); break;
+      case AME_CREATE_INPUT_ERROR : printf("ERROR IN CREATE\n"); break;
+      case AME_NO_SPACE_FOR_INDEX : printf("NO MORE SPACE\n"); break;
+      case AME_NOT_INDEX_FILE : printf("FILE IS NOT AN INDEX FILE\n"); break;
+      case AME_CANNOT_DESTROY_INDEX_OPEN : printf("CANNOT DESTROY FILE\n"); break;
+      case AME_INDEX_FILE_NOT_OPEN : printf("THE FILE IS NOT OPEN\n"); break;
+      case AME_ROOT_NOT_EXIST : printf("THE ROOT DOES NOT EXIST\n"); break;
+      case AME_INVALID_OP : printf("INVALID OPERATION\n"); break;
+      case AME_NO_SPACE_FOR_SEARCH : printf("NO SPACE IN THE GLOBAL ARRAY(MAXIMUM 20)\n"); break;
+      case AME_CANNOT_DESTROY_SEARCH_OPEN : printf("SEARCH ONGOING CANNOT DESTROY FILE\n"); break;
+      case AME_KEY_NOT_EXIST : printf("INVALID KEY\n"); break;
+      case AME_CANNOT_INSERT_SEARCH_OPEN : printf("SEARCH ONGOING CANNOT INSERT RECORD\n"); break;
+      case AME_CANNOT_CLOSE_SEARCH_OPEN : printf("SEARCH ONGOING CANNOT CLOSE FILE\n"); break;
     }
 }
 
