@@ -29,7 +29,6 @@ extern int AM_errno;
 #define AME_END_OF_FILE -13
 #define AME_CANNOT_INSERT_SEARCH_OPEN -14
 #define AME_CANNOT_CLOSE_SEARCH_OPEN -15
-#define CANNOT_DESTROY_SEARCH_OPEN -16
 
 #define EQUAL 1
 #define NOT_EQUAL 2

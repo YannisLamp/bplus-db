@@ -130,16 +130,6 @@ int AM_DestroyIndex(char *fileName) {
     }
     i++;
   }
-  // Also check if there is an ongoing search in the same file
-  for(int i = 0; i < MAXSCANS; i++) {
-    if (OpenSearches[i].fileDesc != -1) {
-      if (strcmp(OpenIndexes[OpenSearches[i].fileDesc].fileName,
-                 OpenIndexes[fileDesc].filename == 0) {
-        AM_errno = CANNOT_DESTROY_SEARCH_OPEN;
-        return CANNOT_DESTROY_SEARCH_OPEN;
-      }
-    }
-  }
   // If not, delete file
   // MPOREI NA THELEI ./ (GIA DIR)
   remove(fileName);
@@ -235,9 +225,9 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
   for(int i = 0; i < MAXSCANS; i++) {
     if (OpenSearches[i].fileDesc != -1) {
       if (strcmp(OpenIndexes[OpenSearches[i].fileDesc].fileName,
-                 OpenIndexes[fileDesc].filename == 0) {
-        AM_errno = CANNOT_INSERT_SEARCH_OPEN;
-        return CANNOT_INSERT_SEARCH_OPEN;
+                 OpenIndexes[fileDesc].fileName) == 0) {
+        AM_errno = AME_CANNOT_INSERT_SEARCH_OPEN;
+        return AME_CANNOT_INSERT_SEARCH_OPEN;
       }
     }
   }
@@ -273,7 +263,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
     // Then, only if input key (value1) is less than the first key of the
     // root block, and the first pointer of the root does not point to a
     // block (-1), make a new data block, place the record in it and point to it
-    if (fblock_num == -1 &&
+    if (first_block_id == -1 &&
         v_cmp(OpenIndexes[fileDesc].attrType1, value1, curr_key) == -1) {
       // Call create_leftmost_block to create the new block, insert the new
       // record in it and change the OpenIndexes[fileDesc]
@@ -284,7 +274,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, block));
       char* root_data = BF_Block_GetData(block);
       root_data += 4 + sizeof(int);
-      memcpy(root_data, OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
+      memcpy(root_data, &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
 
       // Set dirty and unpin root block
       BF_Block_SetDirty(block);
@@ -304,7 +294,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
         // Allocate block for root
         CHK_BF_ERR(BF_AllocateBlock(fd, block));
         // Initialize root block with id and key_number (1)
-        new_root_data = BF_Block_GetData(block);
+        char* new_root_data = BF_Block_GetData(block);
         // Get new root block id
         int new_root_id = 0;
         CHK_BF_ERR(BF_GetBlockCounter(fd, &new_root_id));
@@ -314,7 +304,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
         memcpy(new_root_data, rid, 4);
         new_root_data += 4;
         // One key will be inserted
-        temp_i = 1;
+        int temp_i = 1;
         memcpy(new_root_data, &temp_i, sizeof(int));
         new_root_data += sizeof(int);
         // Block number before the first key is the previous root
@@ -341,7 +331,7 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       }
     }
     free(curr_key);
-    BF_Block_Destroy(&root_block);
+    BF_Block_Destroy(&block);
   }
   return ret_value;
 }
