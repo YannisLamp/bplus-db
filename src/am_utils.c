@@ -171,6 +171,8 @@ int create_leftmost_block(int fileDesc, void *value1, void *value2) {
 }
 
 RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value2) {
+  // Function output
+  RecTravOut possible_block;
   // Initialize block and get file descriptor
   BF_Block *block;
   BF_Block_Init(&block);
@@ -180,8 +182,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   char* block_data = BF_Block_GetData(block);
   // Allocate space for a key value
   void* temp_key = (void *)malloc(OpenIndexes[fileDesc].attrLength1);
-  // Function output
-  RecTravOut possible_block;
+
   // First check if current block is an index block or a data block
   // If it is an index block, continue traversal (recursion)
   // (in order to find the right data block for the values to be inserted into)
