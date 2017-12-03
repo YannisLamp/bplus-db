@@ -52,7 +52,6 @@ int AM_CreateIndex(char *fileName,
 	               int attrLength1,
 	               char attrType2,
 	               int attrLength2) {
-
 	// Check for possible attrType and attrLength input errors
   // Attribute 1
 	if (attrType1 == INTEGER || attrType1 == FLOAT) {
@@ -148,45 +147,8 @@ int AM_DestroyIndex(char *fileName) {
   return AME_OK;
 }
 
-// GIA TESTING EKTIPWNEI AKAIRAIOUS APO
-//print_check(eAentry);
-int print_check(int index) {
-  int fd = OpenIndexes[index].fd;
-  if (fd == -1) {
-    AM_errno = AME_INDEX_FILE_NOT_OPEN;
-    return AME_INDEX_FILE_NOT_OPEN;
-  }
-  // Then check if it is an index file
-  BF_Block *block;
-  BF_Block_Init(&block);
-  // There should be an ".if" at the start of the first block
 
-  int next_block = OpenIndexes[index].dataBlockNum;
-
-  while (next_block != -1) {
-    CHK_BF_ERR(BF_GetBlock(fd, next_block, block));
-    char* block_data = BF_Block_GetData(block);
-    printf("NEWBLOCK\n");
-    block_data += 4;
-    int rec_num = 0;
-    memcpy(&rec_num, block_data, sizeof(int));
-    block_data += 2*sizeof(int);
-    int record_size = OpenIndexes[index].attrLength1 + OpenIndexes[index].attrLength2;
-    for (int i = 0; i <rec_num;i++) {
-      int out = 0;
-      memcpy(&out, block_data + i*record_size, sizeof(int));
-      printf("%d\n", out);
-    }
-    memcpy(&next_block, block_data - sizeof(int), sizeof(int));
-    // Unpin and destroy block
-    CHK_BF_ERR(BF_UnpinBlock(block));
-  }
-
-  BF_Block_Destroy(&block);
-	return index;
-}
-
-int AM_OpenIndex (char *fileName) {
+int AM_OpenIndex(char *fileName) {
   // Search for the first empty space to store the opened file
   int save_index = 0;
   while (save_index < MAXOPENFILES && OpenIndexes[save_index].fd != -1)
@@ -223,7 +185,7 @@ int AM_OpenIndex (char *fileName) {
   // Save file decriptor and filename
   OpenIndexes[save_index].fd = fd;
   char* fname = malloc(sizeof(fileName));
-  strcpy(fname, fileName);
+  memcpy(fname, fileName, sizeof(fileName));
   OpenIndexes[save_index].fileName = fname;
   // Save file metadata in the available FileMeta struct
   memcpy(&(OpenIndexes[save_index].attrType1), block_data, 1);
@@ -365,7 +327,6 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       // means that a new block has been created in the same level a the root,
       // so a new root should be created to point to both this and the new block
       if (possible_block.nblock_id != -1) {
-        printf("KAPPAKIPPO\n" );
         // Allocate block for root
         CHK_BF_ERR(BF_AllocateBlock(fd, block));
         // Initialize root block with id and key_number (1)

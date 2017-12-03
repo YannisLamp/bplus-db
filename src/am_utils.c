@@ -63,6 +63,7 @@ int v_cmp(char v_type, void* value1, void* value2) {
     return -2;
 }
 
+
 int init_bptree(int fileDesc, void *value1, void *value2) {
   // Initialize block and get file descriptor
   BF_Block *block;
@@ -133,6 +134,7 @@ int init_bptree(int fileDesc, void *value1, void *value2) {
   return AME_OK;
 }
 
+
 int create_leftmost_block(int fileDesc, void *value1, void *value2) {
   // Initialize block and get file descriptor
   BF_Block *block;
@@ -175,8 +177,11 @@ int create_leftmost_block(int fileDesc, void *value1, void *value2) {
   return AME_OK;
 }
 
+
+// Function that traverses the tree recursively, and when it reaches the data blocks
+// (tree leaves) it inserts the given record, and, if a new block is created, then
+// it is passed to the higher level (to be added to the tree) as a return value
 RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value2) {
-  //printf("REC CALLEED\n" );
   // Function output
   RecTravOut possible_block;
   // Initialize block and get file descriptor
@@ -193,7 +198,6 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
   // If it is an index block, continue traversal (recursion)
   // (in order to find the right data block for the values to be inserted into)
   if (strcmp(block_data, ".ib") == 0) {
-    //printf("IN INDEX\n" );
     // Get number of keys in block
     block_data += 4;
     int key_num = 0;
@@ -204,8 +208,6 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     int key_plus_ptr_size = sizeof(int) + OpenIndexes[fileDesc].attrLength1;
     // Then try to find next block
     int found_block_pos = 0;
-    //printf("%c\n", OpenIndexes[fileDesc].attrType1);
-    //printf("%d >= %d\n", *(int*)value1, *(int*)temp_key);
     while(found_block_pos < key_num &&
           v_cmp(OpenIndexes[fileDesc].attrType1, value1, temp_key) > -1) {
       // Get next key after block
@@ -213,19 +215,15 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       memcpy(temp_key, block_data + found_block_pos*key_plus_ptr_size + sizeof(int),
              OpenIndexes[fileDesc].attrLength1);
     }
-    //printf("FOUND BLOCK POS %d\n", found_block_pos);
     // Get block id
     int found_block_id = 0;
     memcpy(&found_block_id, block_data + found_block_pos*key_plus_ptr_size,
             sizeof(int));
-    //printf("%d\n", found_block_id);
     // Before the recursive call
     block_data = NULL;
     CHK_BF_ERR_RECTRAV(BF_UnpinBlock(block));
     // Then call the same function with found_block_num as input block number
-    //printf("RENINSIDEREC\n" );
     possible_block = rec_trav_insert(fileDesc, found_block_id, value1, value2);
-    //printf("AFTER REC\n" );
     // If the returned struct's possible_block.nblock_id is not -1, that
     // means that a new block has been created in a lower level, so a key and a
     // pointer to it should be added in this block
@@ -381,13 +379,9 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
     }
   }
 
-
-
-
   // Else, if it is a data block, that means that this is where the given
   // values should be inserted (end recursion)
   else if (strcmp(block_data, ".db") == 0) {
-    //printf("IN DATA\n" );
     // Get number of records (consist of 2 attributes) in block
     block_data += 4;
     int record_num = 0;
@@ -448,7 +442,6 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       possible_block.nblock_id = -1;
       possible_block.error = 0;
     }
-
 
     // Else, create a new data block and distribute the records between them in
     // the best way possible (records with the same key value should not be
@@ -575,7 +568,6 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
           new_block_i++;
         }
       }
-
       // Pass the output values to the possible_block struct
       // First create a RecTravOut struct
       possible_block.nblock_strt_key = malloc(OpenIndexes[fileDesc].attrLength1);
@@ -603,10 +595,8 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       BF_Block_Destroy(&new_block);
     }
   }
-
+  // In the end
   free(temp_key);
   BF_Block_Destroy(&block);
-
   return possible_block;
-
 }
