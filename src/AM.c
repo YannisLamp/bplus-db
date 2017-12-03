@@ -19,6 +19,16 @@
     }                                \
   }
 
+  #define CHK_BF_ERR_NULL(call)        \
+    {                                  \
+      BF_ErrorCode code = call;        \
+      if (code != BF_OK) {             \
+        BF_PrintError(code);           \
+  			AM_errno = AME_BF_CALL_ERROR;  \
+        return NULL;      \
+      }                                \
+    }
+
 int AM_errno = AME_OK;
 
 
@@ -491,7 +501,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     int op=OpenSearches[scanDesc].op;
     void* op_key=OpenSearches[scanDesc].op_key;
     int key_num;
-    CHK_BF_ERR(BF_GetBlock(fd,curr_block,block));  //get block with number block_num
+    CHK_BF_ERR_NULL(BF_GetBlock(fd,curr_block,block));  //get block with number block_num
     data=BF_Block_GetData(block);
 
     memcpy(&pointer,data + id_sz + key_num_sz , pointer_sz);
@@ -503,10 +513,10 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     }
 
     if(key_num==curr_pos) {//go to the next block
-            CHK_BF_ERR(BF_UnpinBlock(block));
+            CHK_BF_ERR_NULL(BF_UnpinBlock(block));
             OpenSearches[scanDesc].curr_pos=0;          //new block so our position is 0
             OpenSearches[scanDesc].curr_block=pointer;  //our curr_block now is the pointer of the prwvious block
-            CHK_BF_ERR(BF_GetBlock(fd,pointer,block)); //get new block
+            CHK_BF_ERR_NULL(BF_GetBlock(fd,pointer,block)); //get new block
             data=BF_Block_GetData(block);
     }
 
@@ -532,10 +542,10 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
                 while(1){ //if key1 is equal to op_key we search for a different key1
                     OpenSearches[scanDesc].curr_pos++;
                     if(key_num==curr_pos) {//go to the next block
-                        CHK_BF_ERR(BF_UnpinBlock(block));
+                        CHK_BF_ERR_NULL(BF_UnpinBlock(block));
                         OpenSearches[scanDesc].curr_pos=0;          //new block so our position is 0
                         OpenSearches[scanDesc].curr_block=pointer;  //our curr_block now is the pointer of the prwvious block
-                        CHK_BF_ERR(BF_GetBlock(fd,pointer,block)); //get new block
+                        CHK_BF_ERR_NULL(BF_GetBlock(fd,pointer,block)); //get new block
                         data=BF_Block_GetData(block);
                         memcpy(&pointer,data + id_sz + key_num_sz , pointer_sz); //pointer of new block
                     }
