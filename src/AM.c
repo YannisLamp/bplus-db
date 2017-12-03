@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> 
+#include <string.h>
 
 #include "bf.h"
 #include "AM.h"
@@ -28,6 +28,9 @@
         return NULL;                   \
       }                                \
     }
+
+FileMeta OpenIndexes[MAXOPENFILES];
+SearchData OpenSearches[MAXSCANS];
 
 int AM_errno = AME_OK;
 
