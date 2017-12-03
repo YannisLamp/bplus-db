@@ -434,6 +434,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_INDEX_FILE_NOT_OPEN;
   }
   //Check if there is a root in the file
+  printf("%d",OpenIndexes[fileDesc].rootBlockNum);
   if (OpenIndexes[fileDesc].rootBlockNum == -1) {
     AM_errno = AME_ROOT_NOT_EXIST;
     return AME_ROOT_NOT_EXIST;
@@ -450,7 +451,6 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_NO_SPACE_FOR_SEARCH;
   }
   //if not we found a location
-  OpenSearches[scanDesc].info=(void*)malloc(OpenIndexes[fileDesc].attrLength2);
 
 
 //////////////sizes///////////////////
@@ -690,7 +690,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
             break;
     }
 
-
+    free(OpenSearches[scanDesc].info);
     OpenSearches[scanDesc].info=(void*)key2;
     free(key1);
     BF_Block_Destroy(&block);
