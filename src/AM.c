@@ -388,7 +388,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
   if(op==EQUAL || op==GREATER_THAN || op==GREATER_THAN_OR_EQUAL) { //we have to search the block
 
       block_num=OpenIndexes[fileDesc].rootBlockNum;
-      While (1){
+      while (1){
         CHK_BF_ERR(BF_GetBlock(fd,block_num,block));  //get block with number block_num
         data=BF_Block_GetData(block);                 //get the data
         memcpy(id,data,id_sz);
@@ -396,7 +396,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
             memcpy(&key_number, data + id_sz , key_num_sz);
             memcpy(&ipointer,data + id_sz + key_num_sz , pointer_sz);
 
-            for(int i=0;i<key_number,i++){    //check always if the value is smaller
+            for(int i=0;i<key_number;i++){    //check always if the value is smaller
 
                 memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz1,key_sz1);
 
@@ -425,7 +425,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
         memcpy(&key_number,data+id_sz,key_num_sz);//we passed the identification
         memcpy(&dpointer,data+id_sz+key_num_sz,pointer_sz);
 
-        for(i=0;i<key_number){ //find key1 inside the db block
+        for(i=0;i<key_number;i++){ //find key1 inside the db block
           memcpy(key1,data + id_sz + key_num_sz + pointer_sz + i*key_sz1 +i*key_sz2,key_sz1);
           //no reason to make different if statements
           //we did only because one if statement would be too large
@@ -489,7 +489,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     int curr_block=OpenSearches[scanDesc].curr_block;
     int curr_pos=OpenSearches[scanDesc].curr_pos;
     int op=OpenSearches[scanDesc].op;
-    int op_key=OpenSearches[scanDesc].op_key;
+    void* op_key=OpenSearches[scanDesc].op_key;
     int key_num;
     CHK_BF_ERR(BF_GetBlock(fd,curr_block,block));  //get block with number block_num
     data=BF_Block_GetData(block);

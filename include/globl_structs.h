@@ -26,7 +26,7 @@ typedef struct SearchData {
 } SearchData;
 
 SearchData searchdata_init(SearchData);
-SearchData searchdata_add_info(SearchData,int,int,int,int,int); //thats the function we use
+SearchData searchdata_add_info(SearchData,int,int,int,int,void*); //thats the function we use
                                                       //at AM_OpenIndexScan
                                                       //starting and curr are the same
 

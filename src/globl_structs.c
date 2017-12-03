@@ -10,7 +10,7 @@ FileMeta filemeta_init(FileMeta fm) {
   fm.attrType2 = '\0';
   fm.attrLength2 = -1;
   fm.rootBlockNum = -1;
-  fm.dataBlockNum = -1; 
+  fm.dataBlockNum = -1;
 
   return fm;
 }
@@ -25,7 +25,7 @@ SearchData searchdata_init(SearchData sd) {
     return sd;
 }
 
-SearchData searchdata_add_info(SearchData sd,int fileDesc,int op,int block,int pos,int op_key){
+SearchData searchdata_add_info(SearchData sd,int fileDesc,int op,int block,int pos,void* op_key){
   sd.fileDesc=fileDesc;
   sd.op=op;
   sd.curr_block=block;
