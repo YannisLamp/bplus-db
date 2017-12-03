@@ -297,6 +297,9 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
                                               OpenIndexes[fileDesc].rootBlockNum,
                                               value1,
                                               value2);
+      // In case of an error inside the function
+      if (possible_block.error < 0)
+        return possible_block.error;
       // If the returned struct's possible_block.nblock_id is not -1, that
       // means that a new block has been created in the same level a the root,
       // so a new root should be created to point to both this and the new block
