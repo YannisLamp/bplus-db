@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "globl_structs.h"
 
 FileMeta filemeta_init(FileMeta fm) {
@@ -20,7 +21,7 @@ SearchData searchdata_init(SearchData sd) {
     sd.op=-1;
     sd.curr_block=-1;
     sd.curr_pos=-1;
-    sd.op_key=-1;
+    sd.op_key=NULL;
     sd.info=NULL;
     return sd;
 }
@@ -41,7 +42,7 @@ void searchdata_free(SearchData* sd) {
   sd->op=-1;
   sd->curr_block=-1;
   sd->curr_pos=-1;
-  sd->op_key=-1;
+  sd->op_key=NULL;
   free(sd->info);
   sd->info=NULL;
 }
