@@ -490,8 +490,9 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
                 if(v_cmp(OpenIndexes[fileDesc].attrType1,value,(void*)key1)<0){ //go to the left pointer
 
                     if(i==0 && ipointer==-1) {  //there is a chance that the first pointer is -1
+                        OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,OpenIndexes[fileDesc].dataBlockNum,-2,value);//add it to OpenSearches
                         AM_errno = AME_KEY_NOT_EXIST; //if thats the case the key does not exist in the tree
-                        return AME_KEY_NOT_EXIST;
+                        return scanDesc;
                     }
 
                   //  CHK_BF_ERR(BF_UnpinBlock(block)); //next pointer found so unpin the block
@@ -534,8 +535,9 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
           OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,dpointer,0,value);
         }
         else if(i==key_number){//for finished without finding anything so key does not exist
+            OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,OpenIndexes[fileDesc].dataBlockNum,-2,value);//add it to OpenSearches (-2 means that null will be rwutnrd at find next entry)
             AM_errno = AME_KEY_NOT_EXIST;
-            return AME_KEY_NOT_EXIST;
+            return scanDesc;
          }
          CHK_BF_ERR(BF_UnpinBlock(block));
 
@@ -599,13 +601,14 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     if(key_num==curr_pos) {//go to the next block
             CHK_BF_ERR_NULL(BF_UnpinBlock(block));
             OpenSearches[scanDesc].curr_pos=0;          //new block so our position is 0
+            curr_pos=0;
             OpenSearches[scanDesc].curr_block=pointer;  //our curr_block now is the pointer of the prwvious block
             CHK_BF_ERR_NULL(BF_GetBlock(fd,pointer,block)); //get new block
             data=BF_Block_GetData(block);
     }
-
     memcpy(key1,data + id_sz + key_num_sz + pointer_sz + curr_pos*key_sz1 + curr_pos*key_sz2 ,key_sz1 );
     //memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
+    printf("%d",op);
     switch(op) {
         case EQUAL :
             if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)==0){
@@ -618,6 +621,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
             }
             break;
         case NOT_EQUAL :
+
             if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)!=0) {
                 memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
                 OpenSearches[scanDesc].curr_pos++;
@@ -625,9 +629,11 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
             else if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)==0) {
                 while(1){ //if key1 is equal to op_key we search for a different key1
                     OpenSearches[scanDesc].curr_pos++;
+                    curr_pos++;
                     if(key_num==curr_pos) {//go to the next block
                         CHK_BF_ERR_NULL(BF_UnpinBlock(block));
                         OpenSearches[scanDesc].curr_pos=0;          //new block so our position is 0
+                        curr_pos=0;
                         OpenSearches[scanDesc].curr_block=pointer;  //our curr_block now is the pointer of the prwvious block
                         CHK_BF_ERR_NULL(BF_GetBlock(fd,pointer,block)); //get new block
                         data=BF_Block_GetData(block);
@@ -718,8 +724,6 @@ void AM_PrintError(char *errString) {
       case AME_KEY_NOT_EXIST : printf("AME_KEY_NOT_EXIST\n"); break;
       case AME_CANNOT_INSERT_SEARCH_OPEN : printf("AME_CANNOT_INSERT_SEARCH_OPEN\n"); break;
       case AME_CANNOT_CLOSE_SEARCH_OPEN : printf("AME_CANNOT_CLOSE_SEARCH_OPEN\n"); break;
-
-
     }
 }
 
