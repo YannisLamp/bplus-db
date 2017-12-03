@@ -475,6 +475,8 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
   free(id);
   free(key1);
   free(key2);
+  BF_Block_Destroy(&block);
+
   return scanDesc;
 }
 
@@ -599,6 +601,8 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     OpenSearches[scanDesc].info=(void*)malloc(OpenIndexes[OpenSearches[scanDesc].fileDesc].attrLength2);
     OpenSearches[scanDesc].info=(void*)key2;
     free(key1);
+    BF_Block_Destroy(&block);
+
     return OpenSearches[scanDesc].info;
 }
 
