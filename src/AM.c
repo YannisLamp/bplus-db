@@ -703,7 +703,7 @@ void AM_PrintError(char *errString) {
       case AME_NOT_INDEX_FILE : printf("FILE IS NOT AN INDEX FILE\n"); break;
       case AME_CANNOT_DESTROY_INDEX_OPEN : printf("CANNOT DESTROY FILE\n"); break;
       case AME_INDEX_FILE_NOT_OPEN : printf("THE FILE IS NOT OPEN\n"); break;
-      case AME_ROOT_NOT_EXIST : printf("THE ROOT DOES NOT EXIST\n"); break;
+      case AME_ROOT_NOT_EXIST : printf("ROOT DOES NOT EXIST\n"); break;
       case AME_INVALID_OP : printf("INVALID OPERATION\n"); break;
       case AME_NO_SPACE_FOR_SEARCH : printf("NO SPACE IN THE GLOBAL ARRAY(MAXIMUM 20)\n"); break;
       case AME_CANNOT_DESTROY_SEARCH_OPEN : printf("SEARCH ONGOING CANNOT DESTROY FILE\n"); break;
