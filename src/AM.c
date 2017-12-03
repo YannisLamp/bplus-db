@@ -166,6 +166,7 @@ int print_check(int index) {
   while (next_block != -1) {
     CHK_BF_ERR(BF_GetBlock(fd, next_block, block));
     char* block_data = BF_Block_GetData(block);
+    printf("NEWBLOCK\n");
     block_data += 4;
     int rec_num = 0;
     memcpy(&rec_num, block_data, sizeof(int));
@@ -281,18 +282,29 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
   }
 
   int ret_value = AME_OK;
+  // Initialize block
+  BF_Block *block;
+  BF_Block_Init(&block);
   // Check if a B+ tree root exists
   // If not, initialize B+ index tree with the first record
   // (create tree root and the first data block)
   if (OpenIndexes[fileDesc].rootBlockNum == -1) {
     ret_value = init_bptree(fileDesc, value1, value2);
+
+    // Change Metadata block
+    CHK_BF_ERR(BF_GetBlock(fd, 0, block));
+    char* meta_data = BF_Block_GetData(block);
+    meta_data += 4 + 1 + sizeof(int) + 1 + sizeof(int);
+    // Insert root block number
+    memcpy(meta_data, &OpenIndexes[fileDesc].rootBlockNum, sizeof(int));
+
+    // Set dirty and unpin metadata block
+    BF_Block_SetDirty(block);
+    CHK_BF_ERR(BF_UnpinBlock(block));
   }
   // Else if tree exists, insert record (value1, value2), according to
   // B+ tree algorithm
   else {
-    // Initialize block
-    BF_Block *block;
-    BF_Block_Init(&block);
     // First get tree root data
     CHK_BF_ERR(BF_GetBlock(fd, OpenIndexes[fileDesc].rootBlockNum, block));
     char* root_data = BF_Block_GetData(block);
@@ -328,6 +340,16 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
       // Set dirty and unpin root block
       BF_Block_SetDirty(block);
       root_data = NULL;
+      CHK_BF_ERR(BF_UnpinBlock(block));
+
+      // Change Metadata block
+      CHK_BF_ERR(BF_GetBlock(fd, 0, block));
+      char* meta_data = BF_Block_GetData(block);
+      meta_data += 4 + 1 + sizeof(int) + 1 + sizeof(int) + sizeof(int);
+      memcpy(meta_data, &OpenIndexes[fileDesc].dataBlockNum, sizeof(int));
+
+      // Set dirty and unpin metadata block
+      BF_Block_SetDirty(block);
       CHK_BF_ERR(BF_UnpinBlock(block));
     }
     // Else call recursive function rec_trav_insert for the tree root
@@ -381,11 +403,22 @@ int AM_InsertEntry(int fileDesc, void *value1, void *value2) {
 
         // Save the new root id in the global struct OpenIndexes
         OpenIndexes[fileDesc].rootBlockNum = new_root_id;
+
+        // Change Metadata block
+        CHK_BF_ERR(BF_GetBlock(fd, 0, block));
+        char* meta_data = BF_Block_GetData(block);
+        meta_data += 4 + 1 + sizeof(int) + 1 + sizeof(int);
+        // Insert root block number
+        memcpy(meta_data, &OpenIndexes[fileDesc].rootBlockNum, sizeof(int));
+
+        // Set dirty and unpin metadata block
+        BF_Block_SetDirty(block);
+        CHK_BF_ERR(BF_UnpinBlock(block));
       }
     }
     free(curr_key);
-    BF_Block_Destroy(&block);
   }
+  BF_Block_Destroy(&block);
   return ret_value;
 }
 
@@ -401,7 +434,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_INDEX_FILE_NOT_OPEN;
   }
   //Check if there is a root in the file
-  if (OpenIndexes[fileDesc].rootBlockNum = -1) {
+  if (OpenIndexes[fileDesc].rootBlockNum == -1) {
     AM_errno = AME_ROOT_NOT_EXIST;
     return AME_ROOT_NOT_EXIST;
   }
