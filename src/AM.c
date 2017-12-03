@@ -452,6 +452,7 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_NO_SPACE_FOR_SEARCH;
   }
   //if not we found a location
+  OpenSearches[scanDesc].info=(void*)malloc(OpenIndexes[fileDesc].attrLength2);
 
 
 //////////////sizes///////////////////
@@ -498,8 +499,8 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
                         return AME_KEY_NOT_EXIST;
                     }
 
-                    CHK_BF_ERR(BF_UnpinBlock(block)); //next pointer found so unpin the block
-                    block_num=ipointer;
+                  //  CHK_BF_ERR(BF_UnpinBlock(block)); //next pointer found so unpin the block
+                  //  block_num=ipointer;
                     break;
                 }
 
@@ -533,10 +534,15 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
               break;
           }
         }
-        if(i==key_number){//for finished without finding anything so key does not exist
+        if(op==GREATER_THAN || op==GREATER_THAN_OR_EQUAL){ //go to next block
+          memcpy(&dpointer,data+id_sz+key_num_sz,pointer_sz);
+          OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,dpointer,0,value);
+        }
+        else if(i==key_number){//for finished without finding anything so key does not exist
             AM_errno = AME_KEY_NOT_EXIST;
             return AME_KEY_NOT_EXIST;
          }
+         CHK_BF_ERR(BF_UnpinBlock(block));
 
   }
   else if(op==NOT_EQUAL || op==LESS_THAN || op==LESS_THAN_OR_EQUAL){ //we choose the left most block
@@ -679,7 +685,6 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     }
 
 
-    OpenSearches[scanDesc].info=(void*)malloc(OpenIndexes[OpenSearches[scanDesc].fileDesc].attrLength2);
     OpenSearches[scanDesc].info=(void*)key2;
     free(key1);
     BF_Block_Destroy(&block);
