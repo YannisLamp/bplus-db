@@ -446,6 +446,7 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       CHK_BF_ERR_RECTRAV(BF_UnpinBlock(block));
 
       possible_block.nblock_id = -1;
+      possible_block.error = 0;
     }
 
 
@@ -496,10 +497,11 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
         first_right_rec_pos = all_rec_num/2 + 1;
       else
         first_right_rec_pos = all_rec_num/2;
-
+      // For the right block
       memcpy(temp_key,
              buffer + (first_right_rec_pos - 1)*record_size,
              OpenIndexes[fileDesc].attrLength1);
+      // For the left block
       memcpy(temp_key2,
              buffer + (first_right_rec_pos - 1)*record_size,
              OpenIndexes[fileDesc].attrLength1);
@@ -541,10 +543,10 @@ RecTravOut rec_trav_insert(int fileDesc, int block_id, void *value1, void *value
       int new_block_id = 0;
       CHK_BF_ERR_RECTRAV(BF_GetBlockCounter(fd, &new_block_id));
       new_block_id--;
-      // Initialize index block with id
+      // Initialize data block with id
       char* new_block_data = BF_Block_GetData(new_block);
-      char rid[4] = ".db"; // It is an "index block"
-      memcpy(new_block_data, rid, 4);
+      char did[4] = ".db"; // It is an "index block"
+      memcpy(new_block_data, did, 4);
       new_block_data += 4;
       // Initialize number of records
       memcpy(new_block_data, &right_rec_num, sizeof(int));
