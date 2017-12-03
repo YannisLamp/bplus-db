@@ -6,6 +6,7 @@ int v_cmp(char, void*, void*);//kalutera na to kanoume char* afoy pernoume memcp
 typedef struct RecTravOut {
     int nblock_id;
     void* nblock_strt_key;
+    int error;
 } RecTravOut;
 
 int create_leftmost_block(int fileDesc, void *value1, void *value2);
