@@ -487,8 +487,6 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
 
             for(int i=0;i<key_number;i++){    //check always if the value is smaller
                 memcpy(key1,data + id_sz + key_num_sz + (i+1)*pointer_sz + i*key_sz1, key_sz1);
-                printf("%s AAAKEY1\n", (char*)key1);
-                printf("%s AAAVALUE\n", (char*)value);
                 if(v_cmp(OpenIndexes[fileDesc].attrType1,value,(void*)key1)<0){ //go to the left pointer
 
                     if(i==0 && ipointer==-1) {  //there is a chance that the first pointer is -1
@@ -518,8 +516,6 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
           memcpy(key1,data + id_sz + key_num_sz + pointer_sz + i*key_sz1 +i*key_sz2,key_sz1);
           //no reason to make different if statements
           //we did only because one if statement would be too large
-          printf("%s KEY1\n", (char*)key1);
-          printf("%s VALUE\n", (char*)value);
           if(v_cmp(OpenIndexes[fileDesc].attrType1,(void*)key1,value)==0 && op==EQUAL ){//found
               OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,block_num,i,value);//add it to OpenSearches
               break;
@@ -596,7 +592,7 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     memcpy(&key_num,data + id_sz  , key_num_sz);
 
     if(pointer==-1 && key_num==curr_pos) {//there is no next entry
-        AM_errno = AME_END_OF_FILE;
+        AM_errno = AME_EOF;
         return NULL;
     }
 
@@ -720,7 +716,10 @@ void AM_PrintError(char *errString) {
       case AME_NO_SPACE_FOR_SEARCH : printf("AME_NO_SPACE_FOR_SEARCH\n"); break;
       case AME_CANNOT_DESTROY_SEARCH_OPEN : printf("AME_CANNOT_DESTROY_SEARCH_OPEN\n"); break;
       case AME_KEY_NOT_EXIST : printf("AME_KEY_NOT_EXIST\n"); break;
-      case AME_END_OF_FILE : printf("AME_END_OF_FILE\n"); break;
+      case AME_CANNOT_INSERT_SEARCH_OPEN : printf("AME_CANNOT_INSERT_SEARCH_OPEN\n"); break;
+      case AME_CANNOT_CLOSE_SEARCH_OPEN : printf("AME_CANNOT_CLOSE_SEARCH_OPEN\n"); break;
+
+
     }
 }
 
