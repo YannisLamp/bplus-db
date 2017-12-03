@@ -434,7 +434,6 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
     return AME_INDEX_FILE_NOT_OPEN;
   }
   //Check if there is a root in the file
-  printf("%d",OpenIndexes[fileDesc].rootBlockNum);
   if (OpenIndexes[fileDesc].rootBlockNum == -1) {
     AM_errno = AME_ROOT_NOT_EXIST;
     return AME_ROOT_NOT_EXIST;
@@ -490,7 +489,8 @@ int AM_OpenIndexScan(int fileDesc, int op, void *value) { //fileDesc isthe locat
                 if(v_cmp(OpenIndexes[fileDesc].attrType1,value,(void*)key1)<0){ //go to the left pointer
 
                     if(i==0 && ipointer==-1) {  //there is a chance that the first pointer is -1
-                        OpenSearches[scanDesc]=searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,OpenIndexes[fileDesc].dataBlockNum,-2,value);//add it to OpenSearches
+                        OpenSearches[scanDesc]=
+                        searchdata_add_info(OpenSearches[scanDesc],fileDesc,op,OpenIndexes[fileDesc].dataBlockNum,-2,value);//add it to OpenSearches
                         AM_errno = AME_KEY_NOT_EXIST; //if thats the case the key does not exist in the tree
                         free(id);
                         free(key1);
@@ -625,7 +625,6 @@ void *AM_FindNextEntry(int scanDesc) { //loaction in searchdata
     }
     memcpy(key1,data + id_sz + key_num_sz + pointer_sz + curr_pos*key_sz1 + curr_pos*key_sz2 ,key_sz1 );
     //memcpy(key2,data + id_sz + key_num_sz + pointer_sz + (curr_pos+1)*key_sz1 + curr_pos*key_sz2 ,key_sz2 );
-    printf("%d",op);
     switch(op) {
         case EQUAL :
             if(v_cmp(OpenIndexes[fileDesc].attrType1,key1,op_key)==0){
