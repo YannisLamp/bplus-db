@@ -4,6 +4,8 @@
  * το οποίο διαγράφει όλα τα b+-δενδρα λόγω της διαγραφής όλης της βάσης.       *
  ********************************************************************************/
 
+// Needs fix, problem maybe in AM_Close then AM_Init
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
